@@ -5,7 +5,7 @@ export const CURRENCIES = {
   NGN: { exponent: 2, label: 'Nigerian naira' },
   GBP: { exponent: 2, label: 'British pound' },
   EUR: { exponent: 2, label: 'Euro' }
-} as const;
+};
 
 export type CurrencyCode = keyof typeof CURRENCIES;
 export const CURRENCY_CODES = Object.keys(CURRENCIES) as [CurrencyCode, ...CurrencyCode[]];

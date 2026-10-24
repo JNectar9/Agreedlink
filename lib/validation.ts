@@ -116,19 +116,19 @@ export function parseChangeForm(
   return { ok: true, proposed, description: v.description, reason: v.reason, notes: v.notes_for_customer };
 }
 
-export function parseDecision<D extends string>(
+export function parseDecision(
   input: Record<string, unknown>,
-  allowed: readonly [D, ...D[]]
-): Result<{ decision: D; name: string; email: string; message: string }> {
+  allowed: readonly string[]
+): Result<{ decision: string; name: string; email: string; message: string }> {
   const schema = z.object({
-    decision: z.enum(allowed),
+    decision: z.string().refine((d) => allowed.includes(d), 'Choose one of the available options.'),
     name: text(120, 1),
     email: z.union([z.string().trim().email().max(254), z.literal('')]).optional().default(''),
     message: optionalText(2000)
   });
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  if (parsed.data.decision === ('clarify' as string) && !parsed.data.message) {
+  if (parsed.data.decision === 'clarify' && !parsed.data.message) {
     return { ok: false, error: 'message: tell us what you would like clarified.' };
   }
   return { ok: true, ...parsed.data };
