@@ -13,7 +13,9 @@ Working journey: sign up -> create agreement -> share customer link -> customer 
 
 Included: landing, about, privacy and terms pages (legal pages are starter drafts that need legal review); Supabase email/password sign up, sign in, sign out; dashboard with real counts, search and filters; create/list/view agreements; share links with copy, WhatsApp, email and device sharing; customer page with no account; change proposals with side-by-side comparison; immutable versions and append-only history; link-opened status; in-app notifications; settings (name, business, time zone, default currency); integer minor-unit money; UTC timestamps shown in the viewer's time zone.
 
-Not included (see `docs/REMAINING.md`): payments (intentionally none), password-reset screen, PDF records, automatic emails or reminders, logo upload, multi-step form and drafts, additional languages, rate limiting.
+Added in upgrade 1 (see `docs/UPGRADE_PLAN.md`): redesigned landing page, dashboard and navigation in the AgreedLink navy and blue palette; Contact page with a saved, spam-protected form; company contact details in the footer; business profile settings shown to customers; password reset; Africa/Lagos as the default time zone for new accounts.
+
+Not included (see `docs/REMAINING.md` and `docs/UPGRADE_PLAN.md`): Paystack payments and billing, file attachments, drafts and multi-step form, PDF records, automatic emails or reminders, logo upload, additional languages, rate limiting.
 
 ## Verification status (honest report)
 
@@ -57,7 +59,7 @@ git push
 ## 2. Supabase setup
 
 1. Create a free project at supabase.com. Save the database password somewhere safe.
-2. Open **SQL Editor** -> **New query**. Paste the entire contents of `supabase/migrations/0001_init.sql` and tap **Run**. It must finish without errors.
+2. Open **SQL Editor** -> **New query**. Paste the entire contents of `supabase/migrations/0001_init.sql` and tap **Run**. It must finish without errors. Then run `supabase/migrations/0002_contact_business_profile.sql` the same way, in a new query, after 0001. Run each migration only once. (0001 is about 30,000 characters; if your phone cuts the paste off, split it as described in the setup notes.)
 3. Open **Project Settings** -> **API**. Copy the **Project URL**, the **anon public** key, and the **service_role** key. The service_role key is a secret: never commit it, never put it in a variable that starts with `NEXT_PUBLIC_`.
 4. Open **Authentication** -> **URL Configuration**. Set **Site URL** to your app URL (see section 3) and add `YOUR_APP_URL/auth/callback` under **Redirect URLs**.
 5. Open **Authentication** -> **Providers** -> **Email**. Leave "Confirm email" on for real use. For quick testing you may turn it off.
@@ -78,7 +80,9 @@ Open `.env.local` in the editor and fill in the values:
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key (secret) |
 | `SHARE_TOKEN_SECRET` | the random string printed by `openssl` (at least 32 characters) |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` locally, or your Codespaces forwarded URL such as `https://NAME-3000.app.github.dev`, or your production domain. No trailing slash |
-| `NEXT_PUBLIC_CONTACT_EMAIL` | optional contact address for the About page |
+| `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_CONTACT_PHONE`, `NEXT_PUBLIC_CONTACT_WHATSAPP` | optional. Default to JNectar's verified details in `lib/site.ts`. Set only to override |
+| `NEXT_PUBLIC_COMPANY_ADDRESS`, `NEXT_PUBLIC_SOCIAL_*` | optional. Shown only when filled in |
+| `RESEND_API_KEY`, `CONTACT_TO_EMAIL`, `CONTACT_FROM_EMAIL` | optional, server-only. Email alerts for contact messages. Messages are always saved in Supabase even without these |
 
 `.env.local` is ignored by git. Restart `npm run dev` after any change.
 

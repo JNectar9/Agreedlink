@@ -28,7 +28,8 @@ export default function SignInPage({ searchParams }: { searchParams: { error?: s
             </div>
             <SubmitButton className="w-full">Sign in</SubmitButton>
           </form>
-          <p className="mt-4 text-sm text-muted">
+          <p className="mt-4 text-sm"><Link href="/forgot-password" className="font-semibold text-brand">Forgot your password?</Link></p>
+          <p className="mt-2 text-sm text-muted">
             New here? <Link href="/signup" className="font-semibold text-brand">Create an account</Link>
           </p>
         </div>

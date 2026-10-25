@@ -119,17 +119,38 @@ export async function markNotificationsReadAction() {
 
 export async function updateSettingsAction(formData: FormData) {
   const { supabase, user } = await session();
-  const displayName = String(formData.get('display_name') ?? '').trim();
-  const businessName = String(formData.get('business_name') ?? '').trim();
+  const text = (name: string) => String(formData.get(name) ?? '').trim();
+  const displayName = text('display_name');
+  const businessName = text('business_name');
   const timezone = String(formData.get('timezone') ?? 'UTC');
   const currency = String(formData.get('default_currency') ?? 'USD');
-  if (displayName.length > 120 || businessName.length > 120) go('/dashboard/settings', 'error', 'Names must be 120 characters or fewer.');
-  if (!isValidTimeZone(timezone)) go('/dashboard/settings', 'error', 'Choose a valid time zone.');
-  if (!(CURRENCY_CODES as readonly string[]).includes(currency)) go('/dashboard/settings', 'error', 'Choose a supported currency.');
+  const businessEmail = text('business_email');
+  const businessPhone = text('business_phone');
+  const businessWebsite = text('business_website');
+  const businessAddress = text('business_address');
+  const fail = (message: string): never => go('/dashboard/settings', 'error', message);
+
+  if (displayName.length > 120 || businessName.length > 120) fail('Names must be 120 characters or fewer.');
+  if (!isValidTimeZone(timezone)) fail('Choose a valid time zone.');
+  if (!(CURRENCY_CODES as readonly string[]).includes(currency)) fail('Choose a supported currency.');
+  if (businessEmail && (!/^\S+@\S+\.\S+$/.test(businessEmail) || businessEmail.length > 254)) fail('Enter a valid business email or leave it empty.');
+  if (businessPhone.length > 40 || !/^[0-9+()\-\s]*$/.test(businessPhone)) fail('Phone numbers may contain digits, spaces, + ( ) and - only.');
+  if (businessWebsite && (!/^https?:\/\/[^\s]+$/i.test(businessWebsite) || businessWebsite.length > 200)) fail('The website must start with http:// or https://.');
+  if (businessAddress.length > 300) fail('The address must be 300 characters or fewer.');
+
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName, business_name: businessName, timezone, default_currency: currency })
+    .update({
+      display_name: displayName,
+      business_name: businessName,
+      timezone,
+      default_currency: currency,
+      business_email: businessEmail,
+      business_phone: businessPhone,
+      business_website: businessWebsite,
+      business_address: businessAddress
+    })
     .eq('id', user.id);
-  if (error) go('/dashboard/settings', 'error', errorCopy('default'));
+  if (error) go('/dashboard/settings', 'error', 'Settings could not be saved. Run the latest database migration (0002) and try again.');
   go('/dashboard/settings', 'ok', 'Settings saved.');
 }

@@ -29,6 +29,29 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
           <input id="business_name" name="business_name" defaultValue={profile.business_name} maxLength={120} className="input" />
           <p className="hint">Shown to your customers on the approval page instead of your name.</p>
         </div>
+        <div className="border-t border-line pt-4">
+          <h2 className="text-lg">Business profile</h2>
+          <p className="hint">Optional. These details appear on the customer approval page. Leave blank to show nothing.</p>
+        </div>
+        <div>
+          <label htmlFor="business_email" className="label">Business email</label>
+          <input id="business_email" name="business_email" type="email" defaultValue={profile.business_email ?? ''} maxLength={254} className="input" />
+        </div>
+        <div>
+          <label htmlFor="business_phone" className="label">Business phone or WhatsApp</label>
+          <input id="business_phone" name="business_phone" type="tel" defaultValue={profile.business_phone ?? ''} maxLength={40} className="input" />
+        </div>
+        <div>
+          <label htmlFor="business_website" className="label">Website</label>
+          <input id="business_website" name="business_website" inputMode="url" defaultValue={profile.business_website ?? ''} maxLength={200} placeholder="https://" className="input" />
+        </div>
+        <div>
+          <label htmlFor="business_address" className="label">Address</label>
+          <textarea id="business_address" name="business_address" defaultValue={profile.business_address ?? ''} maxLength={300} rows={2} className="input" />
+        </div>
+        <div className="border-t border-line pt-4">
+          <h2 className="text-lg">Preferences</h2>
+        </div>
         <div>
           <label htmlFor="timezone" className="label">Time zone</label>
           <select id="timezone" name="timezone" defaultValue={profile.timezone} className="input">

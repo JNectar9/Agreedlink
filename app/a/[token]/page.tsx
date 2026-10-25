@@ -22,6 +22,7 @@ export const metadata: Metadata = { title: 'Review agreement', robots: { index: 
 type View = {
   link_state: 'ok' | 'invalid' | 'revoked' | 'expired';
   creator_name?: string;
+  business?: { email?: string | null; phone?: string | null; website?: string | null; address?: string | null } | null;
   status?: 'awaiting_approval' | 'approved' | 'declined' | 'completed' | 'expired' | 'draft';
   version?: number;
   terms?: Terms;
@@ -99,6 +100,9 @@ export default async function CustomerPage({ params, searchParams }: { params: {
           </p>
           {view.approval ? <p className="mt-2 text-sm text-muted">Approved by the name entered, {view.approval.approved_by_name}, on <LocalTime iso={view.approval.approved_at} />.</p> : null}
         </div>
+        {view.business && [view.business.email, view.business.phone, view.business.website, view.business.address].some(Boolean) ? (
+          <p className="text-sm text-muted">Contact {view.creator_name}: {[view.business.email, view.business.phone, view.business.website, view.business.address].filter(Boolean).join(' · ')}</p>
+        ) : null}
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
           <div><dt className="font-medium text-navy">Total price</dt><dd>{money(t.amount_minor)}</dd></div>
           <div><dt className="font-medium text-navy">Delivery date</dt><dd>{formatPlainDate(t.delivery_date)}</dd></div>

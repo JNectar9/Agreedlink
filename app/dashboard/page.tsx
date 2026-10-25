@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { FilePlus2, ChevronRight } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, FilePlus2, FileText, GitCompare, LifeBuoy, PlusCircle, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import { requireSession, displayStatus, OPEN_CHANGE, type AgreementRow } from '@/lib/data';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { formatMinorSafe } from '@/lib/money';
-import { formatDateTime } from '@/lib/time';
+import { formatDateTime, formatPlainDate, greeting } from '@/lib/time';
 import { markNotificationsReadAction } from './actions';
 import { en } from '@/messages/en';
 
@@ -32,27 +32,46 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
   );
 
   const cards = [
-    { label: 'Total agreements', value: decorated.length },
-    { label: 'Awaiting customer approval', value: decorated.filter((a) => a.shown === 'awaiting_approval').length },
-    { label: 'Approved', value: decorated.filter((a) => a.status === 'approved').length },
-    { label: 'With pending changes', value: decorated.filter((a) => a.shown === 'changes_pending').length }
+    { label: 'Total agreements', value: decorated.length, Icon: FileText, tone: 'bg-brand-soft text-brand' },
+    { label: 'Awaiting approval', value: decorated.filter((a) => a.shown === 'awaiting_approval').length, Icon: Clock, tone: 'bg-warn-bg text-warn' },
+    { label: 'Approved', value: decorated.filter((a) => a.status === 'approved').length, Icon: CheckCircle2, tone: 'bg-ok-bg text-ok' },
+    { label: 'Changes pending', value: decorated.filter((a) => a.shown === 'changes_pending').length, Icon: GitCompare, tone: 'bg-brand-soft text-navy' }
   ];
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl sm:text-3xl">Welcome{profile.display_name ? `, ${profile.display_name}` : ''}</h1>
-        <p className="mt-1 text-muted">Everything your customers approved, in one place.</p>
+        <h1 className="text-2xl sm:text-3xl">{greeting(profile.timezone)}{profile.display_name ? `, ${profile.display_name.split(' ')[0]}` : ''}</h1>
+        <p className="mt-1 text-muted">Manage your agreements and keep track of every decision.</p>
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
 
       <section aria-label="Summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className="card !p-4">
-            <p className="text-3xl font-semibold text-navy">{c.value}</p>
-            <p className="mt-1 text-sm text-muted">{c.label}</p>
+        {cards.map(({ label, value, Icon, tone }) => (
+          <div key={label} className="card flex items-center gap-3 !p-4">
+            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon size={20} aria-hidden="true" /></span>
+            <div className="min-w-0">
+              <p className="text-2xl font-semibold leading-none text-navy">{value}</p>
+              <p className="mt-1 text-xs text-muted">{label}</p>
+            </div>
           </div>
         ))}
+      </section>
+
+      <section aria-label="Quick actions" className="grid gap-3 md:grid-cols-[1fr_1fr]">
+        <div className="card">
+          <h2 className="text-lg">Quick actions</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            <li><Link href="/dashboard/agreements/new" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><PlusCircle size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Create new agreement</span><span className="text-xs text-muted">Start a new agreement and get a customer link</span></span></Link></li>
+            <li><Link href="/dashboard/settings" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><SettingsIcon size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Business profile</span><span className="text-xs text-muted">Add contact details your customers will see</span></span></Link></li>
+            <li><Link href="/contact" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><LifeBuoy size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Help and support</span><span className="text-xs text-muted">Contact JNectar by email or WhatsApp</span></span></Link></li>
+          </ul>
+        </div>
+        <div className="card bg-brand-soft">
+          <ShieldCheck className="text-brand" size={28} aria-hidden="true" />
+          <h2 className="mt-2 text-lg">Private by design</h2>
+          <p className="mt-1 text-sm text-muted">Only you can see your agreements. Customers see only the agreement that was shared with them, through a private link you can revoke at any time.</p>
+        </div>
       </section>
 
       <section id="notifications" aria-label="Notifications" className="card">
@@ -109,16 +128,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           <ul className="space-y-3">
             {visible.map((a) => (
               <li key={a.id}>
-                <Link href={`/dashboard/agreements/${a.id}`} className="card flex items-center justify-between gap-3 !p-4 hover:border-brand">
+                <Link href={`/dashboard/agreements/${a.id}`} className="card grid items-center gap-2 !p-4 hover:border-brand md:grid-cols-[2fr_1.2fr_1.2fr_1fr_24px] md:gap-4">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-navy">{a.project_name}</p>
-                    <p className="truncate text-sm text-muted">{a.client_name} · {formatMinorSafe(a.current_amount_minor, a.currency)}</p>
-                    <p className="mt-1 text-xs text-muted">Updated {formatDateTime(a.updated_at, profile.timezone)}</p>
+                    <p className="truncate text-sm text-muted md:hidden">{a.client_name} · {formatMinorSafe(a.current_amount_minor, a.currency)}</p>
+                    <p className="text-xs text-muted">Updated {formatDateTime(a.updated_at, profile.timezone)}</p>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center">
-                    <StatusBadge status={a.shown} />
-                    <ChevronRight size={18} className="text-muted" aria-hidden="true" />
-                  </div>
+                  <p className="hidden truncate text-sm text-ink md:block">{a.client_name}</p>
+                  <p className="hidden text-sm text-ink md:block">{formatMinorSafe(a.current_amount_minor, a.currency)}<span className="block text-xs text-muted">Due {formatPlainDate(a.current_delivery_date)}</span></p>
+                  <div><StatusBadge status={a.shown} /></div>
+                  <ChevronRight size={18} className="hidden text-muted md:block" aria-hidden="true" />
                 </Link>
               </li>
             ))}

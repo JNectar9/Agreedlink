@@ -5,12 +5,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        navy: '#172554',
-        brand: { DEFAULT: '#2563EB', hover: '#1D4ED8', soft: '#EFF6FF' },
-        page: '#F8FAFC',
+        navy: { DEFAULT: '#071A3D', 2: '#0C2757' },
+        brand: { DEFAULT: '#1769FF', hover: '#0F52CC', soft: '#EAF2FF' },
+        page: '#F6F9FF',
         ink: '#0F172A',
         muted: '#64748B',
-        line: '#E2E8F0',
+        line: '#E1E8F5',
         ok: { DEFAULT: '#15803D', bg: '#F0FDF4' },
         warn: { DEFAULT: '#B45309', bg: '#FFFBEB' },
         bad: { DEFAULT: '#B91C1C', bg: '#FEF2F2' }

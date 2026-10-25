@@ -10,6 +10,10 @@ export type Profile = {
   business_name: string;
   timezone: string;
   default_currency: string;
+  business_email?: string;
+  business_phone?: string;
+  business_website?: string;
+  business_address?: string;
 };
 
 export type AgreementRow = {
@@ -57,7 +61,7 @@ export async function requireSession() {
     id: user.id,
     display_name: user.email ?? '',
     business_name: '',
-    timezone: 'UTC',
+    timezone: 'Africa/Lagos',
     default_currency: 'USD'
   };
   return { supabase, user, profile: safeProfile };

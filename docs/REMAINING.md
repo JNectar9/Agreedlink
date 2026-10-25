@@ -4,8 +4,8 @@ This is the honest list of what the first milestone does not do. Nothing here is
 
 ## From the specification, not built yet
 - Multi-step create flow, Save Draft, and editing an agreement before approval (the "draft" status exists in the database but is never used).
-- Password reset screen and flow.
 - Manual "Remind Customer" action with limits (reminders are deferred).
+- Everything listed as Phase 2 to Phase 5 in `docs/UPGRADE_PLAN.md` (Paystack, drafts, attachments, PDF).
 - Downloadable PDF or printable records.
 - Business logo upload and custom branding.
 - Dedicated Change Requests, Activity, and Help pages (changes and history are shown on each agreement).

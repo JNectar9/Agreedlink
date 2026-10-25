@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     'AgreedLink helps freelancers record what a customer approved, track requested changes, and record updated prices and deadlines before extra work begins. Created by JNectar.'
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#172554' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#071A3D' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
