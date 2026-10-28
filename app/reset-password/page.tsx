@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { SiteHeader } from '@/components/SiteHeader';
+import { AuthShell } from '@/components/AuthShell';
+import { AuthField } from '@/components/AuthField';
 import { SubmitButton } from '@/components/SubmitButton';
 import { Notice } from '@/components/Notice';
 import { SetupNotice } from '@/components/SetupNotice';
@@ -14,31 +15,18 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
   const configured = isSupabaseConfigured();
   const user = configured ? (await createClient().auth.getUser()).data.user : null;
   return (
-    <>
-      <SiteHeader />
-      <main className="mx-auto max-w-md px-4 py-12">
-        <h1 className="text-2xl">Choose a new password</h1>
-        <div className="card mt-6">
-          {!configured ? <SetupNotice /> : null}
-          <Notice error={searchParams.error} />
-          {user ? (
-            <form action={resetPasswordAction} className="space-y-4">
-              <div>
-                <label htmlFor="password" className="label">New password</label>
-                <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required className="input" />
-                <p className="hint">At least 8 characters.</p>
-              </div>
-              <div>
-                <label htmlFor="confirm" className="label">Confirm new password</label>
-                <input id="confirm" name="confirm" type="password" autoComplete="new-password" minLength={8} maxLength={72} required className="input" />
-              </div>
-              <SubmitButton className="w-full">Change password</SubmitButton>
-            </form>
-          ) : (
-            <p className="text-sm text-muted">This page works only from the link in your reset email, opened in the same browser. <Link href="/forgot-password" className="font-semibold text-brand">Request a new link</Link>.</p>
-          )}
-        </div>
-      </main>
-    </>
+    <AuthShell subtitle="Choose a new password for your account.">
+      {!configured ? <SetupNotice /> : null}
+      <Notice error={searchParams.error} />
+      {user ? (
+        <form action={resetPasswordAction} className="space-y-4">
+          <AuthField icon="lock" id="password" name="password" type="password" label="New password" autoComplete="new-password" required minLength={8} maxLength={72} hint="Minimum 8 characters" />
+          <AuthField icon="lock" id="confirm" name="confirm" type="password" label="Confirm new password" autoComplete="new-password" required minLength={8} maxLength={72} />
+          <SubmitButton pendingText="Saving…" className="w-full !min-h-[52px] !rounded-2xl text-base">Change password</SubmitButton>
+        </form>
+      ) : (
+        <p className="text-sm text-blue-100">This page works only from the link in your reset email, opened in the same browser. <Link href="/forgot-password" className="font-semibold text-white underline">Request a new link</Link>.</p>
+      )}
+    </AuthShell>
   );
 }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { defaultExpiry, encryptToken, generateToken, hashToken } from '@/lib/tokens';
 import { parseAgreementForm, parseChangeForm } from '@/lib/validation';
 import { CURRENCY_CODES } from '@/lib/money';
+import { normalizePhone } from '@/lib/auth-validation';
 import { isValidTimeZone } from '@/lib/time';
 import { errorCopy, en } from '@/messages/en';
 import type { Terms } from '@/lib/terms';
@@ -111,10 +112,11 @@ export async function completeAgreementAction(agreementId: string) {
   go(agreementPath(agreementId), 'ok', 'Marked as completed. This is recorded as reported by you, not confirmed by the customer.');
 }
 
-export async function markNotificationsReadAction() {
+export async function markNotificationsReadAction(formData: FormData) {
   const { supabase, user } = await session();
   await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('owner_id', user.id).is('read_at', null);
-  redirect('/dashboard');
+  const to = String(formData.get('to') ?? '');
+  redirect(to === '/dashboard/notifications' ? to : '/dashboard');
 }
 
 export async function updateSettingsAction(formData: FormData) {
@@ -128,7 +130,9 @@ export async function updateSettingsAction(formData: FormData) {
   const businessPhone = text('business_phone');
   const businessWebsite = text('business_website');
   const businessAddress = text('business_address');
-  const fail = (message: string): never => go('/dashboard/settings', 'error', message);
+  const fail: (message: string) => never = (message) => go('/dashboard/settings', 'error', message);
+  const phone = normalizePhone(text('phone'));
+  if (phone === null) fail('Enter your phone number with its country code, for example +234...');
 
   if (displayName.length > 120 || businessName.length > 120) fail('Names must be 120 characters or fewer.');
   if (!isValidTimeZone(timezone)) fail('Choose a valid time zone.');
@@ -148,9 +152,42 @@ export async function updateSettingsAction(formData: FormData) {
       business_email: businessEmail,
       business_phone: businessPhone,
       business_website: businessWebsite,
-      business_address: businessAddress
+      business_address: businessAddress,
+      phone: phone ?? ''
     })
     .eq('id', user.id);
   if (error) go('/dashboard/settings', 'error', 'Settings could not be saved. Run the latest database migration (0002) and try again.');
   go('/dashboard/settings', 'ok', 'Settings saved.');
 }
+
+export async function cancelAgreementAction(agreementId: string) {
+  if (!UUID.test(agreementId)) redirect('/dashboard');
+  const { supabase } = await session();
+  const { error } = await supabase.rpc('cancel_agreement', { p_agreement: agreementId });
+  if (error) go(agreementPath(agreementId), 'error', copyForDbError(error.message));
+  go(agreementPath(agreementId), 'ok', 'Agreement cancelled. It no longer counts toward your plan limit, and the customer link has stopped working.');
+}
+
+/** Called after the browser has uploaded a photo to the private avatars bucket. */
+export async function saveAvatarAction(path: string) {
+  const { supabase, user } = await session();
+  const pattern = new RegExp(`^${user.id}/avatar-\\d{10,16}\\.(jpg|png|webp)$`);
+  if (typeof path !== 'string' || !pattern.test(path)) go('/dashboard/settings', 'error', 'That photo could not be saved.');
+  const { data: signed, error: readError } = await supabase.storage.from('avatars').createSignedUrl(path, 60);
+  if (readError || !signed) go('/dashboard/settings', 'error', 'The photo upload did not complete. Please try again.');
+  const { data: before } = await supabase.from('profiles').select('avatar_path').eq('id', user.id).maybeSingle();
+  const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('id', user.id);
+  if (error) go('/dashboard/settings', 'error', 'Your photo could not be saved. Run the latest database migration (0004) and try again.');
+  if (before?.avatar_path && before.avatar_path !== path) await supabase.storage.from('avatars').remove([before.avatar_path]);
+  go('/dashboard/settings', 'ok', 'Profile photo updated.');
+}
+
+export async function removeAvatarAction() {
+  const { supabase, user } = await session();
+  const { data: before } = await supabase.from('profiles').select('avatar_path').eq('id', user.id).maybeSingle();
+  const { error } = await supabase.from('profiles').update({ avatar_path: null }).eq('id', user.id);
+  if (error) go('/dashboard/settings', 'error', 'Your photo could not be removed. Please try again.');
+  if (before?.avatar_path) await supabase.storage.from('avatars').remove([before.avatar_path]);
+  go('/dashboard/settings', 'ok', 'Profile photo removed.');
+}
+

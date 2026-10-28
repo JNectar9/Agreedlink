@@ -9,7 +9,8 @@ export default function PrivacyPage() {
       <h2>What we collect from account holders</h2>
       <ul>
         <li>Email address and a hashed password, handled by our authentication provider (Supabase).</li>
-        <li>Display name, business name, time zone, and default currency that you enter.</li>
+        <li>Full name, optional phone number, business name, time zone, and default currency that you enter, and the time you accepted these terms.</li>
+        <li>An optional profile photo, stored privately so only you can access it.</li>
         <li>Agreements you create: project details, prices, dates, and the client name and optional client email you enter.</li>
         <li>Optional business profile details you enter in Settings (business email, phone, website, address). They are shown to customers on the approval page for your agreements.</li>
       </ul>

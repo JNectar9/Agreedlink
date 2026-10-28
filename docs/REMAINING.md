@@ -15,6 +15,16 @@ This is the honest list of what the first milestone does not do. Nothing here is
 - Currencies beyond USD, NGN, GBP, EUR (add to `lib/money.ts` with the correct minor-unit exponent and tests).
 - Default revision count and default terms in Settings.
 
+## Plans: what is enforced and what is not
+- Enforced by the database today: active agreement limit per plan (3, 50, 200). Until Paystack is connected everyone is on Free. To test a paid plan yourself, insert a row in `subscriptions` with source `manual` (see the update page).
+- Not enforced because the features do not exist yet: saved template limits, attachment size and total storage limits, PDF export, email invitations, advanced reporting, team workspace.
+- Billing page shows the plan from the database. Upgrade, downgrade, cancellation and renewal dates need the Paystack phase.
+
+## Design and data notes
+- The "Watch Demo" button in the design reference is not included because no demo video exists.
+- "Invite client" and "Upload document" from the reference are not included because those features are not built (invitations and attachments are planned).
+- The Templates page offers four starter texts, not legal advice. They are plain defaults in `lib/templates.ts`.
+
 ## Hardening before a public launch
 - Error and success banners show text taken from the page address (`?error=`). Replace with fixed message codes so a crafted link cannot display misleading text, especially on the customer page.
 - Rate limiting for the customer decision and link-open endpoints.

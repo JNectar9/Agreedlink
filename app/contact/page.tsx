@@ -1,4 +1,4 @@
-import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { Clock, Globe, Mail, MapPin, MessageCircle } from 'lucide-react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Notice } from '@/components/Notice';
@@ -21,9 +21,13 @@ export default function ContactPage({ searchParams }: { searchParams: { error?: 
           <h1 className="text-3xl">Contact {SITE.company}</h1>
           <p className="mt-3 text-muted">Questions about {SITE.product}? Send us a message or use any of the details below.</p>
           <div className="mt-6 space-y-3">
-            <a className={item} href={`mailto:${SITE.email}`}><span className={icon}><Mail size={20} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Email</span><span className="text-sm text-muted">{SITE.email}</span></span></a>
-            <a className={item} href={whatsappLink()} target="_blank" rel="noopener noreferrer"><span className={icon}><MessageCircle size={20} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">WhatsApp</span><span className="text-sm text-muted">{SITE.phone}</span></span></a>
-            <a className={item} href={`tel:${SITE.phone}`}><span className={icon}><Phone size={20} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Phone</span><span className="text-sm text-muted">{SITE.phone}</span></span></a>
+            <a className={item} href={`mailto:${SITE.email}`}><span className={icon}><Mail size={20} aria-hidden="true" /></span><span className="min-w-0"><span className="block font-semibold text-navy">Email</span><span className="block break-words text-sm text-muted">{SITE.email}</span></span></a>
+            <div className={item}>
+              <span className={icon}><MessageCircle size={20} aria-hidden="true" /></span>
+              <span className="min-w-0"><span className="block font-semibold text-navy">WhatsApp / Call</span><span className="block text-sm text-muted">{SITE.phone}</span>
+                <span className="mt-2 flex flex-wrap gap-2"><a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={whatsappLink()} target="_blank" rel="noopener noreferrer">Open WhatsApp</a><a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={`tel:${SITE.phone}`}>Call</a></span></span>
+            </div>
+            <a className={item} href={SITE.website} target="_blank" rel="noopener noreferrer"><span className={icon}><Globe size={20} aria-hidden="true" /></span><span className="min-w-0"><span className="block font-semibold text-navy">Website</span><span className="block break-words text-sm text-muted">{SITE.website.replace(/^https?:\/\//, '')}</span></span></a>
             {SITE.address ? <div className={item}><span className={icon}><MapPin size={20} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Address</span><span className="text-sm text-muted">{SITE.address}</span></span></div> : null}
             {socials.length > 0 ? (
               <p className="flex flex-wrap gap-3 pt-1 text-sm">

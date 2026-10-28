@@ -15,7 +15,9 @@ const config: Config = {
         warn: { DEFAULT: '#B45309', bg: '#FFFBEB' },
         bad: { DEFAULT: '#B91C1C', bg: '#FEF2F2' }
       },
-      fontFamily: { sans: ['var(--font-inter)', 'system-ui', 'sans-serif'] }
+      fontFamily: { sans: ['var(--font-inter)', 'system-ui', 'sans-serif'] },
+      keyframes: { loadbar: { '0%': { transform: 'translateX(-110%)' }, '100%': { transform: 'translateX(260%)' } } },
+      animation: { loadbar: 'loadbar 1.3s ease-in-out infinite' }
     }
   },
   plugins: []

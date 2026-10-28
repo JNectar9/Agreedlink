@@ -17,7 +17,13 @@
   .input { @apply block w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base text-ink placeholder:text-muted/70 sm:text-sm; }
   .label { @apply mb-1.5 block text-sm font-medium text-ink; }
   .hint { @apply mt-1 text-xs text-muted; }
+  .auth-input { @apply block w-full rounded-2xl border border-brand/50 bg-[#061a45]/70 py-3.5 pl-12 pr-4 text-base text-white placeholder:text-blue-300/80 focus:border-brand focus:bg-[#071f52]; }
   .card { @apply rounded-2xl border border-line bg-white p-5 shadow-[0_8px_30px_rgba(7,26,61,0.06)] sm:p-6; }
+}
+
+@layer utilities {
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

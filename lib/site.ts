@@ -10,6 +10,7 @@ export const SITE = {
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'JNectar.tech@gmail.com',
   phone,
   whatsapp: (process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || phone).replace(/\D/g, ''),
+  website: process.env.NEXT_PUBLIC_COMPANY_WEBSITE || 'https://jnectar.tech',
   address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '',
   socials: {
     X: process.env.NEXT_PUBLIC_SOCIAL_X || '',

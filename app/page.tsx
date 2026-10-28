@@ -1,15 +1,19 @@
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Clock, FileCheck2, GitCompare, History, Link2, ListChecks, MessageCircle, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, BarChart3, CheckCircle2, Clock, FileCheck2, FileText, GitCompare, History, Link2, ListChecks, MessageCircle, RefreshCw, ShieldCheck, Smartphone } from 'lucide-react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { HeroPreview } from '@/components/HeroPreview';
-import { PLANS } from '@/lib/pricing';
+import { PricingCards } from '@/components/PricingCards';
+import { Faq } from '@/components/Faq';
+import { publicStats } from '@/lib/platform';
+
+export const dynamic = 'force-dynamic';
 
 const highlights = [
-  { label: 'Private approval links', Icon: Link2 },
-  { label: 'Version history', Icon: History },
-  { label: 'Change requests', Icon: GitCompare },
-  { label: 'Works on any phone', Icon: Smartphone }
+  { label: 'Digital Agreements', Icon: FileText },
+  { label: 'Private and Secure Links', Icon: ShieldCheck },
+  { label: 'Track Progress', Icon: BarChart3 },
+  { label: 'Peace of Mind', Icon: CheckCircle2 }
 ];
 
 const problems = [
@@ -26,64 +30,77 @@ const steps = [
 
 const features = [
   { title: 'Shareable approval links', body: 'Send by WhatsApp, email, or any app on your phone.', Icon: Link2 },
-  { title: 'Original agreement snapshots', body: 'Approved versions are locked and never silently edited.', Icon: ShieldCheck },
+  { title: 'Locked approved versions', body: 'Approved terms are never silently edited.', Icon: ShieldCheck },
   { title: 'Revision limits in writing', body: 'State what counts as a revision and what is not included.', Icon: ListChecks },
-  { title: 'Change requests with comparison', body: 'See current and proposed price, date, and scope side by side.', Icon: GitCompare },
-  { title: 'Updated prices and deadlines', body: 'The current terms always match the last approved version.', Icon: RefreshCw },
-  { title: 'Timestamps and activity history', body: 'Every action is logged with who, what, and when.', Icon: Clock },
-  { title: 'Link opened status', body: 'See when a link was first and last opened.', Icon: CheckCircle2 },
-  { title: 'In-app notifications', body: 'Know when a customer approves, declines, or asks a question.', Icon: MessageCircle }
+  { title: 'Change requests', body: 'Compare current and proposed price, date, and scope side by side.', Icon: GitCompare },
+  { title: 'Updated prices and deadlines', body: 'Current terms always match the last approved version.', Icon: RefreshCw },
+  { title: 'Activity history', body: 'Every action is logged with who, what, and when.', Icon: History },
+  { title: 'Link opened status', body: 'See when a link was first and last opened.', Icon: Clock },
+  { title: 'Notifications and templates', body: 'Know when a customer decides, and start from a template.', Icon: MessageCircle }
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const stats = await publicStats();
+  const real = stats
+    ? [
+        { label: 'Registered users', value: stats.users },
+        { label: 'Agreements created', value: stats.agreements },
+        { label: 'Paid subscribers', value: stats.subscribers }
+      ].filter((s) => s.value > 0)
+    : [];
+
   return (
     <>
       <SiteHeader />
       <main>
         <section className="relative overflow-hidden bg-gradient-to-b from-white to-brand-soft">
-          <div aria-hidden="true" className="absolute -right-48 top-8 hidden h-[560px] w-[560px] rounded-full bg-navy lg:block" />
-          <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-14 lg:grid-cols-2 lg:items-center lg:py-20">
+          <div aria-hidden="true" className="absolute -right-56 top-10 hidden h-[640px] w-[640px] rounded-full bg-navy lg:block" />
+          <div aria-hidden="true" className="absolute -left-40 top-24 hidden h-80 w-80 rounded-full bg-brand/10 lg:block" />
+          <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:py-16 lg:grid-cols-[1fr_1.15fr] lg:items-center lg:py-20">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-navy">
-                <ShieldCheck size={14} className="text-brand" aria-hidden="true" /> Private links · Version history · Simple
+              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-semibold text-navy shadow-sm">
+                <ShieldCheck size={14} className="text-brand" aria-hidden="true" /> Secure <span className="text-brand">·</span> Simple <span className="text-brand">·</span> Reliable
               </p>
-              <h1 className="mt-5 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-                Every project. Every change.<span className="block text-brand">Clearly agreed.</span>
+              <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
+                Make Agreements<span className="block text-brand">That Work</span>
               </h1>
-              <p className="mt-5 max-w-lg text-lg text-muted">
-                Create a clear record of what your client approved, what changed, and what it costs, before extra work begins.
+              <p className="mt-5 max-w-lg text-base text-muted sm:text-lg">
+                AgreedLink helps individuals, freelancers and businesses create, manage and track agreements with confidence. Simple, secure and built for real life.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link href="/signup" className="btn-primary">Create Your First Agreement <ArrowRight size={16} aria-hidden="true" /></Link>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link href="/signup" className="btn-primary">Create an Agreement <ArrowRight size={16} aria-hidden="true" /></Link>
                 <Link href="#how-it-works" className="btn-secondary">See How It Works</Link>
               </div>
               <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {highlights.map(({ label, Icon }) => (
                   <li key={label} className="flex items-center gap-2 text-xs font-medium text-navy">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-brand shadow-sm"><Icon size={16} aria-hidden="true" /></span>
-                    {label}
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-brand shadow-sm"><Icon size={16} aria-hidden="true" /></span>
+                    <span className="min-w-0">{label}</span>
                   </li>
                 ))}
               </ul>
+              {real.length > 0 ? (
+                <dl className="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-5">
+                  {real.map((s) => (<div key={s.label}><dt className="text-xs text-muted">{s.label}</dt><dd className="text-xl font-bold text-navy">{s.value.toLocaleString('en')}</dd></div>))}
+                </dl>
+              ) : null}
             </div>
             <HeroPreview />
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="max-w-xl text-3xl">Small misunderstandings can become expensive.</h2>
+        <section className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
+          <h2 className="max-w-xl text-2xl sm:text-3xl">Small misunderstandings can become expensive.</h2>
           <p className="mt-3 max-w-2xl text-muted">A clear record can reduce confusion about scope, revisions, price, and dates. It cannot remove every disagreement, but it gives both sides the same facts.</p>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {problems.map((p) => (
-              <div key={p.title} className="card"><h3 className="text-lg">{p.title}</h3><p className="mt-2 text-sm text-muted">{p.body}</p></div>
-            ))}
+            {problems.map((p) => (<div key={p.title} className="card"><h3 className="text-lg">{p.title}</h3><p className="mt-2 text-sm text-muted">{p.body}</p></div>))}
           </div>
         </section>
 
-        <section id="how-it-works" className="bg-white py-16">
+        <section id="how-it-works" className="scroll-mt-16 bg-white py-14 sm:py-16">
           <div className="mx-auto max-w-6xl px-4">
-            <h2 className="text-3xl">How it works</h2>
-            <ol className="mt-8 grid gap-6 md:grid-cols-3">
+            <h2 className="text-2xl sm:text-3xl">How it works</h2>
+            <ol className="mt-8 grid gap-5 md:grid-cols-3">
               {steps.map(({ title, body, Icon }, i) => (
                 <li key={title} className="rounded-2xl border border-line bg-page p-6">
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white" aria-hidden="true"><Icon size={20} /></span>
@@ -95,8 +112,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="features" className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="text-3xl">What you get today</h2>
+        <section id="features" className="mx-auto max-w-6xl scroll-mt-16 px-4 py-14 sm:py-16">
+          <h2 className="text-2xl sm:text-3xl">What you get today</h2>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {features.map(({ title, body, Icon }) => (
               <li key={title} className="card !p-5">
@@ -109,41 +126,27 @@ export default function HomePage() {
           <p className="mt-4 text-sm text-muted">File attachments, PDF records, and automatic email reminders are planned but not built yet.</p>
         </section>
 
-        <section id="pricing" className="bg-white py-16">
-          <div className="mx-auto max-w-4xl px-4">
-            <h2 className="text-3xl">Pricing</h2>
-            <p className="mt-3 max-w-2xl text-muted">The Pro price is a proposal that has not been validated with customers. Online payment is not connected yet, so only the Free plan can be used today.</p>
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {PLANS.map((plan) => (
-                <div key={plan.id} className="card flex flex-col">
-                  <h3 className="text-xl">{plan.name}</h3>
-                  <p className="mt-1 text-2xl font-semibold text-navy">{plan.price}</p>
-                  <p className="text-sm text-muted">{plan.note}</p>
-                  {plan.features.length > 0 ? (
-                    <ul className="mt-4 space-y-2 text-sm">
-                      {plan.features.map((f) => (<li key={f} className="flex gap-2"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" /> {f}</li>))}
-                    </ul>
-                  ) : null}
-                  {plan.planned ? (
-                    <div className="mt-4 text-sm">
-                      <p className="font-medium text-navy">Planned</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">{plan.planned.map((f) => (<li key={f}>{f}</li>))}</ul>
-                    </div>
-                  ) : null}
-                  <div className="mt-auto pt-6">
-                    {plan.available ? <Link href="/signup" className="btn-primary w-full">Get started free</Link> : <button disabled className="btn-secondary w-full">Not yet available</button>}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <section id="pricing" className="scroll-mt-16 bg-white py-14 sm:py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <h2 className="text-2xl sm:text-3xl">Pricing</h2>
+            <p className="mt-3 max-w-2xl text-muted">Start free. Pro and Premium are priced in US dollars, with approximate naira amounts shown as estimates. Online payment is not connected yet, so only the Free plan can be used today. Features marked coming soon are not built yet.</p>
+            <div className="mt-8"><PricingCards /></div>
           </div>
+        </section>
+
+        <section id="faq" className="mx-auto max-w-3xl scroll-mt-16 px-4 py-14 sm:py-16">
+          <h2 className="text-2xl sm:text-3xl">Frequently asked questions</h2>
+          <div className="mt-6"><Faq /></div>
         </section>
 
         <section className="bg-navy py-14 text-center">
           <div className="mx-auto max-w-3xl px-4">
-            <h2 className="text-3xl !text-white">Ready to agree on the next project?</h2>
+            <h2 className="text-2xl !text-white sm:text-3xl">Ready to agree on the next project?</h2>
             <p className="mt-3 text-blue-100">Create your first agreement in a few minutes, free.</p>
-            <Link href="/signup" className="btn-primary mt-6 !bg-white !text-navy hover:!bg-brand-soft">Create Your First Agreement</Link>
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/signup" className="btn-primary !bg-white !text-navy hover:!bg-brand-soft">Create an Agreement</Link>
+              <Link href="/contact" className="btn border border-white/40 text-white hover:bg-white/10">Contact us</Link>
+            </div>
           </div>
         </section>
       </main>

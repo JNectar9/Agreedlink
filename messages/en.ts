@@ -8,7 +8,8 @@ export const en = {
     changes_pending: 'Changes pending',
     declined: 'Declined',
     completed: 'Completed',
-    expired: 'Expired'
+    expired: 'Expired',
+    cancelled: 'Cancelled'
   },
   events: {
     created: 'Agreement created',
@@ -25,7 +26,8 @@ export const en = {
     change_rejected: 'Change rejected',
     change_clarification_requested: 'Clarification requested on a change',
     completed: 'Marked completed',
-    expired: 'Link expired'
+    expired: 'Link expired',
+    cancelled: 'Agreement cancelled'
   } as Record<string, string>,
   sources: {
     recorded_by_app: 'Recorded by AgreedLink',
@@ -40,6 +42,7 @@ export const en = {
     name_required: 'Enter your name so the decision can be recorded.',
     message_required: 'Tell us what you would like clarified.',
     invalid_decision: 'That choice is not available.',
+    plan_limit: 'You have reached the active agreement limit for your plan. Complete or cancel an agreement to free a place, or see the plans.',
     free_plan_limit: 'The free plan allows 3 new agreements per month. Paid plans are not available yet.',
     change_already_pending: 'A proposal is already waiting for the customer. Withdraw it before sending another.',
     invalid_state: 'That action is not available for the current status.',

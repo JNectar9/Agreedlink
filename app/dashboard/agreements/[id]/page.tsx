@@ -13,7 +13,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import {
-  completeAgreementAction, proposeChangeAction, regenerateLinkAction, revokeLinkAction, withdrawChangeAction
+  cancelAgreementAction, completeAgreementAction, proposeChangeAction, regenerateLinkAction, revokeLinkAction, withdrawChangeAction
 } from '../../actions';
 
 export const dynamic = 'force-dynamic';
@@ -160,6 +160,20 @@ export default async function AgreementPage({ params, searchParams }: { params: 
           <h2 id="complete-h" className="text-lg">Finish the project</h2>
           <p className="mt-1 text-sm text-muted">Marking the work complete is recorded as reported by you. It does not claim the customer confirmed receipt.</p>
           <form action={completeAgreementAction.bind(null, a.id)} className="mt-3"><SubmitButton variant="secondary">Mark as completed</SubmitButton></form>
+        </section>
+      ) : null}
+
+      {['awaiting_approval', 'approved'].includes(a.status) && !open ? (
+        <section className="card" aria-labelledby="cancel-h">
+          <h2 id="cancel-h" className="text-lg">Cancel this agreement</h2>
+          <p className="mt-1 text-sm text-muted">Cancelling stops the customer link and frees a place under your plan limit. The agreement and its history are kept.</p>
+          <details className="mt-3">
+            <summary className="btn-danger inline-flex cursor-pointer list-none">Cancel agreement</summary>
+            <form action={cancelAgreementAction.bind(null, a.id)} className="mt-3 space-y-2">
+              <p className="text-sm text-ink">Are you sure? This cannot be undone.</p>
+              <SubmitButton variant="danger" pendingText="Cancelling…">Yes, cancel this agreement</SubmitButton>
+            </form>
+          </details>
         </section>
       ) : null}
 

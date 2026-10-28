@@ -14,13 +14,15 @@ export type Profile = {
   business_phone?: string;
   business_website?: string;
   business_address?: string;
+  phone?: string;
+  avatar_path?: string | null;
 };
 
 export type AgreementRow = {
   id: string;
   project_name: string;
   client_name: string;
-  status: 'draft' | 'awaiting_approval' | 'approved' | 'declined' | 'completed' | 'expired';
+  status: 'draft' | 'awaiting_approval' | 'approved' | 'declined' | 'completed' | 'expired' | 'cancelled';
   currency: string;
   original_amount_minor: number;
   current_amount_minor: number;
@@ -47,6 +49,8 @@ export type ChangeRow = {
 };
 
 export const OPEN_CHANGE = ['pending', 'clarification_requested'];
+/** Agreements in these statuses count toward the plan's active-agreement limit. */
+export const ACTIVE_STATUSES = ['draft', 'awaiting_approval', 'approved'];
 
 /** Signed-in user + profile, or a redirect to /signin. Use at the top of dashboard pages. */
 export async function requireSession() {
@@ -71,4 +75,14 @@ export type DisplayStatus = keyof typeof en.status;
 
 export function displayStatus(status: AgreementRow['status'], hasOpenChange: boolean): DisplayStatus {
   return status === 'approved' && hasOpenChange ? 'changes_pending' : status;
+}
+
+/** Loads the signed-in user's agreements (RLS applies) with their display status. */
+export async function loadAgreements(supabase: ReturnType<typeof createClient>) {
+  const [{ data: rows }, { data: openChanges }] = await Promise.all([
+    supabase.from('agreements').select('*').order('updated_at', { ascending: false }).limit(200),
+    supabase.from('change_requests').select('agreement_id').in('status', OPEN_CHANGE)
+  ]);
+  const withOpen = new Set((openChanges ?? []).map((c: { agreement_id: string }) => c.agreement_id));
+  return ((rows ?? []) as AgreementRow[]).map((a) => ({ ...a, shown: displayStatus(a.status, withOpen.has(a.id)) }));
 }

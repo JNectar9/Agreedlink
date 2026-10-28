@@ -1,149 +1,180 @@
 import Link from 'next/link';
-import { CheckCircle2, ChevronRight, Clock, FilePlus2, FileText, GitCompare, LifeBuoy, PlusCircle, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
-import { requireSession, displayStatus, OPEN_CHANGE, type AgreementRow } from '@/lib/data';
-import { StatusBadge } from '@/components/StatusBadge';
-import { Notice } from '@/components/Notice';
-import { SubmitButton } from '@/components/SubmitButton';
-import { formatMinorSafe } from '@/lib/money';
-import { formatDateTime, formatPlainDate, greeting } from '@/lib/time';
-import { markNotificationsReadAction } from './actions';
+import { Bell, CheckCheck, CheckCircle2, Clock, CreditCard, FilePlus2, FileText, LayoutTemplate, LifeBuoy, PlusCircle, Sparkles, Users } from 'lucide-react';
+import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
+import { PLAN_CONFIG, isPlanId } from '@/lib/plans';
+import { isOwnerEmail } from '@/lib/admin';
+import { platformStats } from '@/lib/platform';
+import { bucketByDay } from '@/lib/stats';
+import { formatDateTime, greeting } from '@/lib/time';
 import { en } from '@/messages/en';
+import { Notice } from '@/components/Notice';
+import { StatCard } from '@/components/StatCard';
+import { ActivityChart } from '@/components/ActivityChart';
+import { AgreementRow } from '@/components/AgreementRow';
+import { SubmitButton } from '@/components/SubmitButton';
+import { markNotificationsReadAction } from './actions';
 
-export const metadata = { title: 'Overview' };
+export const metadata = { title: 'Dashboard' };
 
-const FILTERS = ['all', 'awaiting_approval', 'approved', 'changes_pending', 'completed', 'declined', 'expired'] as const;
+type EventRow = { id: number; agreement_id: string; event_type: string; actor_name: string | null; created_at: string };
 
-export default async function DashboardPage({ searchParams }: { searchParams: { status?: string; q?: string; error?: string; ok?: string } }) {
-  const { supabase, profile } = await requireSession();
-  const [{ data: rows }, { data: openChanges }, { data: notes }] = await Promise.all([
-    supabase.from('agreements').select('*').order('updated_at', { ascending: false }).limit(200),
-    supabase.from('change_requests').select('agreement_id').in('status', OPEN_CHANGE),
-    supabase.from('notifications').select('*').is('read_at', null).order('created_at', { ascending: false }).limit(10)
+export default async function DashboardPage({ searchParams }: { searchParams: { error?: string; ok?: string } }) {
+  const { supabase, user, profile } = await requireSession();
+  const [agreements, { data: notes }, { data: eventRows }, planRes] = await Promise.all([
+    loadAgreements(supabase),
+    supabase.from('notifications').select('*').is('read_at', null).order('created_at', { ascending: false }).limit(5),
+    supabase.from('agreement_events').select('id, agreement_id, event_type, actor_name, created_at').order('id', { ascending: false }).limit(6),
+    supabase.rpc('my_plan')
   ]);
+  const plan = PLAN_CONFIG[isPlanId(planRes.data) ? planRes.data : 'free'];
+  const events = (eventRows ?? []) as EventRow[];
+  const names = new Map(agreements.map((a) => [a.id, a.project_name]));
+  const owner = isOwnerEmail(user.email) ? await platformStats() : null;
 
-  const agreements = (rows ?? []) as AgreementRow[];
-  const withOpen = new Set((openChanges ?? []).map((c) => c.agreement_id as string));
-  const decorated = agreements.map((a) => ({ ...a, shown: displayStatus(a.status, withOpen.has(a.id)) }));
-
-  const filter = FILTERS.includes(searchParams.status as (typeof FILTERS)[number]) ? (searchParams.status as string) : 'all';
-  const q = (searchParams.q ?? '').trim().toLowerCase().slice(0, 80);
-  const visible = decorated.filter(
-    (a) => (filter === 'all' || a.shown === filter) && (!q || `${a.project_name} ${a.client_name}`.toLowerCase().includes(q))
-  );
-
-  const cards = [
-    { label: 'Total agreements', value: decorated.length, Icon: FileText, tone: 'bg-brand-soft text-brand' },
-    { label: 'Awaiting approval', value: decorated.filter((a) => a.shown === 'awaiting_approval').length, Icon: Clock, tone: 'bg-warn-bg text-warn' },
-    { label: 'Approved', value: decorated.filter((a) => a.status === 'approved').length, Icon: CheckCircle2, tone: 'bg-ok-bg text-ok' },
-    { label: 'Changes pending', value: decorated.filter((a) => a.shown === 'changes_pending').length, Icon: GitCompare, tone: 'bg-brand-soft text-navy' }
-  ];
+  const total = agreements.length;
+  const active = agreements.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
+  const completed = agreements.filter((a) => a.status === 'completed').length;
+  const pending = agreements.filter((a) => a.shown === 'awaiting_approval' || a.shown === 'changes_pending').length;
+  const week = bucketByDay(agreements.map((a) => a.created_at), 7, new Date(), profile.timezone);
+  const first = profile.display_name ? profile.display_name.split(' ')[0] : '';
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl sm:text-3xl">{greeting(profile.timezone)}{profile.display_name ? `, ${profile.display_name.split(' ')[0]}` : ''}</h1>
-        <p className="mt-1 text-muted">Manage your agreements and keep track of every decision.</p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl">{greeting(profile.timezone)}{first ? `, ${first}` : ''}</h1>
+          <p className="mt-1 text-muted">Here is what is happening with your agreements.</p>
+        </div>
+        <Link href="/dashboard/agreements/new" className="btn-primary w-full sm:w-auto md:hidden"><PlusCircle size={16} aria-hidden="true" /> Create agreement</Link>
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
 
       <section aria-label="Summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {cards.map(({ label, value, Icon, tone }) => (
-          <div key={label} className="card flex items-center gap-3 !p-4">
-            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon size={20} aria-hidden="true" /></span>
-            <div className="min-w-0">
-              <p className="text-2xl font-semibold leading-none text-navy">{value}</p>
-              <p className="mt-1 text-xs text-muted">{label}</p>
+        <StatCard label="Total agreements" value={total} Icon={FileText} tone="bg-brand-soft text-brand" />
+        <StatCard label="Active agreements" value={active} hint={`of ${plan.activeAgreements} on your plan`} Icon={CheckCircle2} tone="bg-ok-bg text-ok" />
+        <StatCard label="Completed" value={completed} Icon={CheckCheck} tone="bg-brand-soft text-navy" />
+        <StatCard label="Pending" value={pending} Icon={Clock} tone="bg-warn-bg text-warn" />
+      </section>
+
+      {owner ? (
+        <section aria-label="Platform statistics" className="space-y-3 rounded-2xl border border-dashed border-brand/40 bg-brand-soft/60 p-4">
+          <p className="text-sm font-semibold text-navy">Platform statistics <span className="font-normal text-muted">(real counts, visible only to you)</span></p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <StatCard label="Total users" value={owner.users} Icon={Users} tone="bg-white text-brand" />
+            <StatCard label="Paid subscribers" value={owner.subscribers} Icon={CreditCard} tone="bg-white text-ok" hint="Billing is not connected yet" />
+            <div className="col-span-2 lg:col-span-1"><StatCard label="Agreements created (all users)" value={owner.agreements} Icon={FileText} tone="bg-white text-navy" /></div>
+          </div>
+          <div className="card !p-4">
+            <h2 className="text-sm">User growth, last 30 days</h2>
+            <ActivityChart data={bucketByDay(owner.signups, 30, new Date(), profile.timezone)} label="New users per day, last 30 days" emptyText="No new users in the last 30 days" />
+          </div>
+        </section>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-4">
+          <section className="card" aria-label="Agreement activity">
+            <h2 className="text-lg">Agreements created, last 7 days</h2>
+            <div className="mt-3"><ActivityChart data={week} label="Agreements created per day, last 7 days" emptyText="No agreements created in the last 7 days" /></div>
+          </section>
+
+          <section aria-label="Recent agreements">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg">Recent agreements</h2>
+              <Link href="/dashboard/agreements" className="text-sm font-semibold text-brand">View all</Link>
             </div>
+            {agreements.length === 0 ? (
+              <div className="card text-center">
+                <FilePlus2 className="mx-auto text-brand" size={36} aria-hidden="true" />
+                <p className="mt-3 font-semibold text-navy">No agreements yet</p>
+                <p className="mt-1 text-sm text-muted">Create your first agreement and send the approval link to your customer.</p>
+                <Link href="/dashboard/agreements/new" className="btn-primary mt-4">Create your first agreement</Link>
+              </div>
+            ) : (
+              <ul className="space-y-3">{agreements.slice(0, 5).map((a) => (<li key={a.id}><AgreementRow a={a} timeZone={profile.timezone} /></li>))}</ul>
+            )}
+          </section>
+        </div>
+
+        <div className="min-w-0 space-y-4">
+          <section className="card" aria-label="Quick actions">
+            <h2 className="text-lg">Quick actions</h2>
+            <ul className="mt-3 space-y-1 text-sm">
+              {[
+                { href: '/dashboard/agreements/new', title: 'Create new agreement', sub: 'Start a new agreement', Icon: PlusCircle, primary: true },
+                { href: '/dashboard/templates', title: 'Use a template', sub: 'Start from ready-made text', Icon: LayoutTemplate },
+                { href: '/dashboard/clients', title: 'View clients', sub: 'See agreements by client', Icon: Users },
+                { href: '/contact', title: 'Help and support', sub: 'Email or WhatsApp JNectar', Icon: LifeBuoy }
+              ].map(({ href, title, sub, Icon, primary }) => (
+                <li key={href}>
+                  <Link href={href} className={`flex min-h-[48px] items-center gap-3 rounded-xl p-2 ${primary ? 'bg-brand text-white hover:bg-brand-hover' : 'hover:bg-brand-soft'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${primary ? 'bg-white/20' : 'bg-brand-soft text-brand'}`}><Icon size={18} aria-hidden="true" /></span>
+                    <span className="min-w-0"><span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span><span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="card" aria-label="Subscription plan">
+            <h2 className="text-lg">Subscription plan</h2>
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <p className="font-semibold text-navy">{plan.name} plan</p>
+              <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-semibold text-ok">Active</span>
+            </div>
+            <Link href="/dashboard/billing" className="btn-secondary mt-3 w-full">Manage billing</Link>
+          </section>
+
+          <section className="rounded-2xl bg-brand p-5 text-white shadow-[0_8px_30px_rgba(23,105,255,0.3)]" aria-label="Upgrade">
+            <Sparkles size={26} aria-hidden="true" />
+            <h2 className="mt-2 text-lg !text-white">Need more room?</h2>
+            <p className="mt-1 text-sm text-blue-100">Pro allows 50 active agreements and Premium 200. Online payment is not available yet, and nobody is charged today.</p>
+            <Link href="/pricing" className="btn mt-3 w-full bg-white text-navy hover:bg-brand-soft">View plans</Link>
+          </section>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <section className="card min-w-0" aria-label="Recent activity">
+          <h2 className="text-lg">Recent activity</h2>
+          {events.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">Activity appears here as you create agreements and customers respond.</p>
+          ) : (
+            <ul className="mt-3 divide-y divide-line">
+              {events.map((e) => (
+                <li key={e.id} className="py-2.5 text-sm">
+                  <Link href={`/dashboard/agreements/${e.agreement_id}`} className="font-semibold text-navy hover:text-brand">{en.events[e.event_type] ?? e.event_type}</Link>
+                  <p className="truncate text-muted">{names.get(e.agreement_id) ?? 'Agreement'}</p>
+                  <p className="text-xs text-muted">{formatDateTime(e.created_at, profile.timezone)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section id="notifications" className="card min-w-0" aria-label="Notifications">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-lg"><Bell size={18} aria-hidden="true" /> Notifications</h2>
+            <Link href="/dashboard/notifications" className="text-sm font-semibold text-brand">View all</Link>
           </div>
-        ))}
-      </section>
-
-      <section aria-label="Quick actions" className="grid gap-3 md:grid-cols-[1fr_1fr]">
-        <div className="card">
-          <h2 className="text-lg">Quick actions</h2>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link href="/dashboard/agreements/new" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><PlusCircle size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Create new agreement</span><span className="text-xs text-muted">Start a new agreement and get a customer link</span></span></Link></li>
-            <li><Link href="/dashboard/settings" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><SettingsIcon size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Business profile</span><span className="text-xs text-muted">Add contact details your customers will see</span></span></Link></li>
-            <li><Link href="/contact" className="flex min-h-[44px] items-center gap-3 rounded-xl p-2 hover:bg-brand-soft"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><LifeBuoy size={18} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Help and support</span><span className="text-xs text-muted">Contact JNectar by email or WhatsApp</span></span></Link></li>
-          </ul>
-        </div>
-        <div className="card bg-brand-soft">
-          <ShieldCheck className="text-brand" size={28} aria-hidden="true" />
-          <h2 className="mt-2 text-lg">Private by design</h2>
-          <p className="mt-1 text-sm text-muted">Only you can see your agreements. Customers see only the agreement that was shared with them, through a private link you can revoke at any time.</p>
-        </div>
-      </section>
-
-      <section id="notifications" aria-label="Notifications" className="card">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg">Notifications</h2>
-          {notes && notes.length > 0 ? (
-            <form action={markNotificationsReadAction}><SubmitButton variant="secondary">Mark all as read</SubmitButton></form>
-          ) : null}
-        </div>
-        {!notes || notes.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">You are all caught up. Customer decisions appear here.</p>
-        ) : (
-          <ul className="mt-3 divide-y divide-line">
-            {notes.map((n) => (
-              <li key={n.id} className="py-3 text-sm">
-                <Link href={n.agreement_id ? `/dashboard/agreements/${n.agreement_id}` : '/dashboard'} className="font-semibold text-navy hover:text-brand">{n.title}</Link>
-                <p className="text-muted">{n.body}</p>
-                <p className="text-xs text-muted">{formatDateTime(n.created_at, profile.timezone)}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-label="Agreements">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg">Agreements</h2>
-          <form className="flex w-full gap-2 sm:w-auto" role="search">
-            <input type="hidden" name="status" value={filter} />
-            <label htmlFor="q" className="sr-only">Search agreements</label>
-            <input id="q" name="q" defaultValue={searchParams.q ?? ''} placeholder="Search project or client" className="input sm:w-64" />
-            <button className="btn-secondary">Search</button>
-          </form>
-        </div>
-        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
-          {FILTERS.map((f) => (
-            <Link key={f} href={`/dashboard?status=${f}${q ? `&q=${encodeURIComponent(q)}` : ''}`} aria-current={f === filter ? 'page' : undefined}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium ${f === filter ? 'border-navy bg-navy text-white' : 'border-line bg-white text-navy hover:bg-brand-soft'}`}>
-              {f === 'all' ? 'All' : en.status[f]}
-            </Link>
-          ))}
-        </div>
-
-        {visible.length === 0 ? (
-          <div className="card text-center">
-            <FilePlus2 className="mx-auto text-brand" size={36} aria-hidden="true" />
-            <p className="mt-3 font-semibold text-navy">{decorated.length === 0 ? 'No agreements yet' : 'No agreements match this view'}</p>
-            <p className="mt-1 text-sm text-muted">
-              {decorated.length === 0 ? 'Create your first agreement and send the approval link to your customer.' : 'Try another filter or search.'}
-            </p>
-            {decorated.length === 0 ? <Link href="/dashboard/agreements/new" className="btn-primary mt-4">Create your first agreement</Link> : null}
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {visible.map((a) => (
-              <li key={a.id}>
-                <Link href={`/dashboard/agreements/${a.id}`} className="card grid items-center gap-2 !p-4 hover:border-brand md:grid-cols-[2fr_1.2fr_1.2fr_1fr_24px] md:gap-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-navy">{a.project_name}</p>
-                    <p className="truncate text-sm text-muted md:hidden">{a.client_name} · {formatMinorSafe(a.current_amount_minor, a.currency)}</p>
-                    <p className="text-xs text-muted">Updated {formatDateTime(a.updated_at, profile.timezone)}</p>
-                  </div>
-                  <p className="hidden truncate text-sm text-ink md:block">{a.client_name}</p>
-                  <p className="hidden text-sm text-ink md:block">{formatMinorSafe(a.current_amount_minor, a.currency)}<span className="block text-xs text-muted">Due {formatPlainDate(a.current_delivery_date)}</span></p>
-                  <div><StatusBadge status={a.shown} /></div>
-                  <ChevronRight size={18} className="hidden text-muted md:block" aria-hidden="true" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          {!notes || notes.length === 0 ? (
+            <p className="mt-3 text-sm text-muted">You are all caught up. Customer decisions appear here.</p>
+          ) : (
+            <>
+              <ul className="mt-3 divide-y divide-line">
+                {notes.map((n) => (
+                  <li key={n.id} className="py-2.5 text-sm">
+                    <Link href={n.agreement_id ? `/dashboard/agreements/${n.agreement_id}` : '/dashboard'} className="font-semibold text-navy hover:text-brand">{n.title}</Link>
+                    <p className="text-muted">{n.body}</p>
+                    <p className="text-xs text-muted">{formatDateTime(n.created_at, profile.timezone)}</p>
+                  </li>
+                ))}
+              </ul>
+              <form action={markNotificationsReadAction} className="mt-3"><SubmitButton variant="secondary">Mark all as read</SubmitButton></form>
+            </>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
