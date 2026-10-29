@@ -3,7 +3,8 @@ import { useRef, useState, useTransition } from 'react';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 import { Avatar } from './Avatar';
 import { createBrowserSupabase } from '@/lib/supabase/browser';
-import { AVATAR_EXT, AVATAR_MAX_BYTES, AVATAR_TYPES } from '@/lib/avatar';
+import { AVATAR_EXT, AVATAR_MAX_BYTES, AVATAR_SOURCE_MAX_BYTES, AVATAR_TYPES } from '@/lib/avatar';
+import { compressImage } from '@/lib/image-compress';
 import { removeAvatarAction, saveAvatarAction } from '@/app/dashboard/actions';
 
 /**
@@ -12,30 +13,46 @@ import { removeAvatarAction, saveAvatarAction } from '@/app/dashboard/actions';
  */
 export function AvatarUploader({ userId, currentUrl, initials, hasPhoto }: { userId: string; currentUrl: string | null; initials: string; hasPhoto: boolean }) {
   const input = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<{ blob: Blob; type: string; kb: number } | null>(null);
+  const [optimizing, setOptimizing] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [pending, startTransition] = useTransition();
-  const busy = uploading || pending;
+  const busy = uploading || pending || optimizing;
 
-  function choose(e: React.ChangeEvent<HTMLInputElement>) {
+  async function choose(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = e.target.files?.[0];
+    const reset = () => { e.target.value = ''; };
     setError('');
     if (!picked) return;
     if (!(AVATAR_TYPES as readonly string[]).includes(picked.type)) {
       setError('Choose a JPEG, PNG or WebP image.');
-      e.target.value = '';
+      reset();
       return;
     }
-    if (picked.size > AVATAR_MAX_BYTES) {
-      setError(`That photo is ${(picked.size / 1024 / 1024).toFixed(1)} MB. The limit is 2 MB.`);
-      e.target.value = '';
+    if (picked.size > AVATAR_SOURCE_MAX_BYTES) {
+      setError(`That photo is ${(picked.size / 1024 / 1024).toFixed(0)} MB. Choose one under ${AVATAR_SOURCE_MAX_BYTES / 1024 / 1024} MB.`);
+      reset();
       return;
     }
-    if (preview) URL.revokeObjectURL(preview);
-    setFile(picked);
-    setPreview(URL.createObjectURL(picked));
+    setOptimizing(true);
+    try {
+      const out = await compressImage(picked);
+      if (out.blob.size > AVATAR_MAX_BYTES) {
+        setError('That photo is still over 5 MB after compression. Choose a smaller one.');
+        reset();
+        return;
+      }
+      if (preview) URL.revokeObjectURL(preview);
+      setFile({ blob: out.blob, type: out.type, kb: Math.max(1, Math.round(out.blob.size / 1024)) });
+      setPreview(URL.createObjectURL(out.blob));
+    } catch {
+      setError('That photo could not be read. Try a different one.');
+      reset();
+    } finally {
+      setOptimizing(false);
+    }
   }
 
   async function save() {
@@ -43,7 +60,7 @@ export function AvatarUploader({ userId, currentUrl, initials, hasPhoto }: { use
     setUploading(true);
     setError('');
     const path = `${userId}/avatar-${Date.now()}.${AVATAR_EXT[file.type]}`;
-    const { error: uploadError } = await createBrowserSupabase().storage.from('avatars').upload(path, file, { contentType: file.type, upsert: false });
+    const { error: uploadError } = await createBrowserSupabase().storage.from('avatars').upload(path, file.blob, { contentType: file.type, upsert: false });
     if (uploadError) {
       setUploading(false);
       setError('The upload failed. Check your connection and try again.');
@@ -67,7 +84,7 @@ export function AvatarUploader({ userId, currentUrl, initials, hasPhoto }: { use
             {file ? (
               <button type="button" onClick={save} disabled={busy} className="btn-primary">
                 {busy ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : null}
-                {busy ? 'Uploading…' : 'Save photo'}
+                {uploading || pending ? 'Uploading…' : `Save photo (${file.kb} KB)`}
               </button>
             ) : null}
             {hasPhoto && !file ? (
@@ -76,7 +93,7 @@ export function AvatarUploader({ userId, currentUrl, initials, hasPhoto }: { use
               </button>
             ) : null}
           </div>
-          <p className="text-xs text-muted">JPEG, PNG or WebP, up to 2 MB. You can pick from your gallery or files.</p>
+          <p className="text-xs text-muted">{optimizing ? 'Optimizing your photo…' : 'JPEG, PNG or WebP. Photos are resized and compressed automatically before upload. Maximum 5 MB after compression. Pick from your gallery or files.'}</p>
         </div>
       </div>
       {error ? <p role="alert" className="mt-3 text-sm text-bad">{error}</p> : null}

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PLAN_CONFIG, PLAN_ORDER, approxNaira, formatNaira, isPlanId } from '@/lib/plans';
+import { PLAN_CONFIG, PLAN_ORDER, approxNaira, formatNaira, isPlanId, priceFor } from '@/lib/plans';
 
 describe('official plans', () => {
   it('has the agreed prices and active agreement limits', () => {
@@ -38,5 +38,33 @@ describe('official plans', () => {
       const row = new RegExp(`\\('${id}', '${PLAN_CONFIG[id].name}', ${PLAN_CONFIG[id].activeAgreements}\\)`);
       expect(sql, `${id} limit in SQL`).toMatch(row);
     }
+  });
+});
+
+describe('prices in the chosen currency', () => {
+  it('shows the confirmed USD price', () => {
+    expect(priceFor('pro', 'USD').headline).toBe('$9/month');
+    expect(priceFor('premium', 'USD').headline).toBe('$24/month');
+  });
+
+  it('shows only an approximate range for naira until a fixed price is confirmed', () => {
+    const pro = priceFor('pro', 'NGN');
+    expect(pro.headline).toContain('₦11,700');
+    expect(pro.headline).toContain('₦12,600');
+    expect(pro.headline.startsWith('≈')).toBe(true);
+    expect(pro.note).toContain('confirmed before checkout');
+    expect(priceFor('premium', 'NGN').headline).toContain('₦33,600');
+  });
+
+  it('never invents a price for an unconfirmed currency', () => {
+    const gbp = priceFor('pro', 'GBP');
+    expect(gbp.headline).toBe('$9/month');
+    expect(gbp.note).toContain('has not been confirmed');
+    expect(gbp.note).toContain('nothing is converted');
+  });
+
+  it('shows the free plan as zero in any currency', () => {
+    expect(priceFor('free', 'USD').headline).toBe('$0/month');
+    expect(priceFor('free', 'NGN').headline).toBe('₦0/month');
   });
 });

@@ -3,7 +3,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
-import { SITE, configuredSocials, whatsappLink } from '@/lib/site';
+import { SITE, configuredSocials, whatsappAvailable, whatsappLink } from '@/lib/site';
 import { sendContactAction } from './actions';
 
 export const metadata = { title: 'Contact us' };
@@ -25,7 +25,7 @@ export default function ContactPage({ searchParams }: { searchParams: { error?: 
             <div className={item}>
               <span className={icon}><MessageCircle size={20} aria-hidden="true" /></span>
               <span className="min-w-0"><span className="block font-semibold text-navy">WhatsApp / Call</span><span className="block text-sm text-muted">{SITE.phone}</span>
-                <span className="mt-2 flex flex-wrap gap-2"><a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={whatsappLink()} target="_blank" rel="noopener noreferrer">Open WhatsApp</a><a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={`tel:${SITE.phone}`}>Call</a></span></span>
+                <span className="mt-2 flex flex-wrap gap-2">{whatsappAvailable ? <a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={whatsappLink()} target="_blank" rel="noopener noreferrer">Open WhatsApp</a> : null}<a className="btn-secondary !min-h-[40px] !px-3 !py-1 text-xs" href={`tel:${SITE.phone}`}>Call</a></span></span>
             </div>
             <a className={item} href={SITE.website} target="_blank" rel="noopener noreferrer"><span className={icon}><Globe size={20} aria-hidden="true" /></span><span className="min-w-0"><span className="block font-semibold text-navy">Website</span><span className="block break-words text-sm text-muted">{SITE.website.replace(/^https?:\/\//, '')}</span></span></a>
             {SITE.address ? <div className={item}><span className={icon}><MapPin size={20} aria-hidden="true" /></span><span><span className="block font-semibold text-navy">Address</span><span className="text-sm text-muted">{SITE.address}</span></span></div> : null}

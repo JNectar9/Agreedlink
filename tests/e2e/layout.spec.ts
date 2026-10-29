@@ -28,3 +28,10 @@ test('the WhatsApp helper opens and offers prefilled options', async ({ page }) 
   await page.getByRole('button', { name: 'Chat on WhatsApp' }).click();
   await expect(page.getByRole('link', { name: 'Talk to a human' })).toHaveAttribute('href', /wa\.me\/2348029864569/);
 });
+
+test('the pricing page can show prices in another currency without inventing one', async ({ page }) => {
+  await page.goto('/pricing?currency=GBP');
+  await expect(page.getByText(/has not been confirmed/).first()).toBeVisible();
+  await page.goto('/pricing?currency=NGN');
+  await expect(page.getByText(/₦11,700/).first()).toBeVisible();
+});

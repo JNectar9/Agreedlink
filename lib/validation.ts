@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CURRENCY_CODES, parseMoneyToMinor, type CurrencyCode } from './money';
+import { isCurrencyCode, parseMoneyToMinor, type CurrencyCode } from './money';
 import { compareTerms, type Terms } from './terms';
 
 export type Result<T> = ({ ok: true } & T) | { ok: false; error: string };
@@ -30,7 +30,7 @@ const agreementSchema = z.object({
   deliverables: text(4000, 1),
   start_date: optionalDate,
   delivery_date: dateString,
-  currency: z.enum(CURRENCY_CODES),
+  currency: z.string().trim().toUpperCase().refine(isCurrencyCode, 'Choose a valid currency.'),
   amount: z.string().trim().min(1, 'Enter the total price.'),
   included_revisions: z.coerce.number().int().min(0).max(50),
   revision_definition: optionalText(1000),

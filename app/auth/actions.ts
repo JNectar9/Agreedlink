@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured, siteUrl } from '@/lib/env';
 import { parseSignUpForm } from '@/lib/auth-validation';
+import { isValidTimeZone } from '@/lib/time';
 
 function go(path: string, kind: 'error' | 'ok', message: string, extra?: Record<string, string>): never {
   const params = new URLSearchParams({ [kind]: message, ...extra });
@@ -34,6 +35,8 @@ export async function signUpAction(formData: FormData) {
   const parsed = parseSignUpForm(Object.fromEntries(formData));
   if (!parsed.ok) fail(parsed.error);
   const { full_name, email, phone, password } = parsed.data;
+  const detected = String(formData.get('timezone') ?? '').trim();
+  const timezone = detected && isValidTimeZone(detected) ? detected : '';
 
   const { data, error } = await createClient().auth.signUp({
     email,
@@ -42,7 +45,7 @@ export async function signUpAction(formData: FormData) {
       emailRedirectTo: `${siteUrl()}/auth/callback`,
       // full_name is the official field. display_name is kept for older code. The database trigger
       // creates the profile from this metadata, so a repeated attempt cannot create a duplicate.
-      data: { full_name, display_name: full_name, terms_accepted: 'true', ...(phone ? { phone } : {}) }
+      data: { full_name, display_name: full_name, terms_accepted: 'true', ...(phone ? { phone } : {}), ...(timezone ? { timezone } : {}) }
     }
   });
   if (error) {

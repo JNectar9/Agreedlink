@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
-import { PLAN_CONFIG, isPlanId } from '@/lib/plans';
+import { PLAN_CONFIG, isPlanId, priceFor } from '@/lib/plans';
 import { PricingCards } from '@/components/PricingCards';
 import { SITE } from '@/lib/site';
 import { formatDateTime } from '@/lib/time';
@@ -29,7 +29,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       {wanted ? (
         <div role="status" className="flex items-start gap-3 rounded-2xl border border-warn/30 bg-warn-bg p-4 text-sm text-warn">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <p>You chose <strong>{wanted.name}</strong> (${wanted.usdPerMonth}/month). Online payment is being connected and is not available yet, so nothing was charged and your plan has not changed. We will confirm the exact amount and ask for your consent at checkout.</p>
+          <p>You chose <strong>{wanted.name}</strong> ({priceFor(wanted.id, profile.default_currency).headline}). Online payment is being connected and is not available yet, so nothing was charged and your plan has not changed. We will confirm the exact amount and ask for your consent at checkout.</p>
         </div>
       ) : null}
 
@@ -39,7 +39,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-semibold text-ok">{sub?.status ? sub.status.replace('_', ' ') : 'active'}</span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">${plan.usdPerMonth}/month</dd></div>
+          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">{priceFor(planId, profile.default_currency).headline}</dd></div>
           <div><dt className="text-muted">Renewal</dt><dd className="font-semibold text-navy">{sub?.current_period_end ? formatDateTime(sub.current_period_end, profile.timezone) : planId === 'free' ? 'Not applicable' : 'Not available'}</dd></div>
           <div><dt className="text-muted">Source</dt><dd className="font-semibold capitalize text-navy">{sub?.source ?? 'free'}</dd></div>
         </dl>
@@ -53,7 +53,8 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
 
       <section aria-label="Plans" className="space-y-3">
         <h2 className="text-lg">Plans</h2>
-        <PricingCards currentPlan={planId} />
+        <PricingCards currentPlan={planId} currency={profile.default_currency} />
+        <p className="text-xs text-muted">Prices are shown in your saved currency ({profile.default_currency}) where a confirmed price exists. Change it in <Link href="/dashboard/settings" className="font-semibold text-brand">Settings</Link>. Your agreements keep their own currencies.</p>
         <p className="text-sm text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit, you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
       </section>
 

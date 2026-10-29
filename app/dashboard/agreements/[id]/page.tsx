@@ -59,6 +59,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl">{a.project_name}</h1>
           <p className="text-muted">For {a.client_name}</p>
+          <p className="text-xs text-muted">Created {formatDateTime(a.created_at, tz)}</p>
         </div>
         <StatusBadge status={shown} />
       </div>

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { defaultExpiry, encryptToken, generateToken, hashToken } from '@/lib/tokens';
 import { parseAgreementForm, parseChangeForm } from '@/lib/validation';
-import { CURRENCY_CODES } from '@/lib/money';
+import { isCurrencyCode } from '@/lib/money';
 import { normalizePhone } from '@/lib/auth-validation';
 import { isValidTimeZone } from '@/lib/time';
 import { errorCopy, en } from '@/messages/en';
@@ -136,7 +136,7 @@ export async function updateSettingsAction(formData: FormData) {
 
   if (displayName.length > 120 || businessName.length > 120) fail('Names must be 120 characters or fewer.');
   if (!isValidTimeZone(timezone)) fail('Choose a valid time zone.');
-  if (!(CURRENCY_CODES as readonly string[]).includes(currency)) fail('Choose a supported currency.');
+  if (!isCurrencyCode(currency)) fail('Choose a valid currency from the list.');
   if (businessEmail && (!/^\S+@\S+\.\S+$/.test(businessEmail) || businessEmail.length > 254)) fail('Enter a valid business email or leave it empty.');
   if (businessPhone.length > 40 || !/^[0-9+()\-\s]*$/.test(businessPhone)) fail('Phone numbers may contain digits, spaces, + ( ) and - only.');
   if (businessWebsite && (!/^https?:\/\/[^\s]+$/i.test(businessWebsite) || businessWebsite.length > 200)) fail('The website must start with http:// or https://.');

@@ -48,7 +48,9 @@ Every file in the project and what it does.
 | `components/Avatar.tsx` | Profile picture or initials. |
 | `components/AvatarUploader.tsx` | Pick, preview, upload, replace and remove a profile photo. |
 | `components/ComparisonTable.tsx` | Side-by-side current versus proposed terms with Changed labels. |
+| `components/CurrencyField.tsx` | Searchable world currency field (code, name, symbol). |
 | `components/DashboardNav.tsx` | Sidebar and phone bottom navigation with active state and unread badge. |
+| `components/DetectTimezone.tsx` | Hidden sign-up field carrying the device time zone. |
 | `components/Faq.tsx` | Accessible FAQ list. |
 | `components/HeroPreview.tsx` | Decorative laptop, phone and WhatsApp preview built from labelled sample data. |
 | `components/LegalPage.tsx` | Layout for legal pages with a review warning. |
@@ -58,6 +60,7 @@ Every file in the project and what it does.
 | `components/OAuthButtons.tsx` | Google and GitHub buttons, shown only when configured. |
 | `components/OpenBeacon.tsx` | Reports a link open from the browser after render. |
 | `components/PricingCards.tsx` | The three official plans with approximate naira labels and coming-soon markers. |
+| `components/SearchableSelect.tsx` | Accessible searchable dropdown with group headings. |
 | `components/SetupNotice.tsx` | Clear message shown when Supabase is not configured. |
 | `components/ShareButtons.tsx` | Copy, WhatsApp, email and native share with an editable message. |
 | `components/SiteFooter.tsx` | Footer with company, contact, legal links and the Created by JNectar credit. |
@@ -65,22 +68,26 @@ Every file in the project and what it does.
 | `components/StatCard.tsx` | Dashboard statistic card. |
 | `components/StatusBadge.tsx` | Status label with icon (never colour alone). |
 | `components/SubmitButton.tsx` | Submit button with loading state that blocks double submission. |
-| `components/TimezoneField.tsx` | Searchable time zone field with Africa/Lagos and UTC suggestions. |
+| `components/TimezoneField.tsx` | Searchable region-grouped time zone field with device detection and live clock. |
 | `components/Waves.tsx` | Decorative flowing waves for the navy auth screens. |
 | `components/WhatsAppWidget.tsx` | Floating WhatsApp helper with prefilled message options. |
 | `docs/FILES.md` | This file. |
 | `docs/REMAINING.md` | What is not built yet and what to do before launch. |
 | `docs/UPGRADE_PLAN.md` | Audit summary and the phased upgrade plan with honest status. |
 | `lib/admin.ts` | Owner check using the server-only ADMIN_EMAILS list. |
+| `lib/agreement-filter.ts` | Case-insensitive status filtering where Approved includes every approved agreement. |
 | `lib/auth-validation.ts` | Sign-up validation and phone number normalisation. |
 | `lib/avatar.ts` | Avatar rules and signed photo links. |
 | `lib/contact.ts` | Contact form validation and spam checks. |
 | `lib/data.ts` | Session guard, shared row types, display-status helper. |
 | `lib/env.ts` | Reads configuration and reports whether setup is complete. |
 | `lib/faq.ts` | FAQ questions and honest answers. |
+| `lib/format.ts` | Small formatting helpers (pluralize). |
+| `lib/image-compress.ts` | Browser photo resize and compression before upload. |
+| `lib/image-size.ts` | Photo resize maths. |
 | `lib/links.ts` | Builds the customer URL from the encrypted token (not a server action). |
-| `lib/money.ts` | Currency list, integer minor-unit parsing, formatting, no floating-point math. |
-| `lib/plans.ts` | Official Free, Pro and Premium plan definitions, approximate naira helper. |
+| `lib/money.ts` | World currencies from standard data, integer minor units, formatting with correct symbols. |
+| `lib/plans.ts` | Plan definitions, confirmed prices per currency, and price display without invented conversions. |
 | `lib/platform.ts` | Real platform counts from the database (owner dashboard, public strip). |
 | `lib/site.ts` | Company name, contact details (defaults from JNectar) and WhatsApp link helper. |
 | `lib/stats.ts` | Counts timestamps per day in a time zone (for charts). |
@@ -103,14 +110,17 @@ Every file in the project and what it does.
 | `supabase/migrations/0002_contact_business_profile.sql` | Business profile fields, contact messages with rate limits, Lagos default time zone, updated customer_get. |
 | `supabase/migrations/0003_cancelled_status.sql` | Adds the cancelled agreement status. Run alone, before 0004. |
 | `supabase/migrations/0004_accounts_plans_avatars.sql` | Profile phone, avatar and terms fields, new-user trigger, plans and subscriptions tables, active-agreement limit, cancel_agreement, private avatars bucket. |
+| `supabase/migrations/0005_avatar_limit_timezone_signup.sql` | Photo limit 5 MB; new accounts use the detected time zone, NGN for Lagos. |
 | `tailwind.config.ts` | AgreedLink colour tokens (navy, blue, status colours) and font. |
 | `tests/e2e/auth.spec.ts` | Playwright checks for sign-up fields, show/hide password, terms checkbox, footer contacts. |
 | `tests/e2e/layout.spec.ts` | Playwright checks for no sideways scrolling at 320, 360, 390 and 1280 pixels. |
 | `tests/e2e/smoke.spec.ts` | Playwright smoke tests for phone and desktop widths. |
 | `tests/integration/database.test.ts` | Authorization, append-only history, and conflicting decision tests (need a test Supabase project). |
 | `tests/unit/admin.test.ts` | Unit tests for the owner check. |
+| `tests/unit/agreement-filter.test.ts` | Unit tests for filtering. |
 | `tests/unit/auth-validation.test.ts` | Unit tests for sign-up validation and phone numbers. |
 | `tests/unit/contact.test.ts` | Unit tests for contact validation and spam checks. |
+| `tests/unit/format.test.ts` | Unit tests for plural wording and photo sizing. |
 | `tests/unit/money.test.ts` | Unit tests for money parsing and formatting. |
 | `tests/unit/plans.test.ts` | Unit tests for plans, naira ranges, and sync with the database limits. |
 | `tests/unit/site.test.ts` | Unit tests for contact details and WhatsApp link. |

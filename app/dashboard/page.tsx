@@ -66,7 +66,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           </div>
           <div className="card !p-4">
             <h2 className="text-sm">User growth, last 30 days</h2>
-            <ActivityChart data={bucketByDay(owner.signups, 30, new Date(), profile.timezone)} label="New users per day, last 30 days" emptyText="No new users in the last 30 days" />
+            <ActivityChart data={bucketByDay(owner.signups, 30, new Date(), profile.timezone)} label="New users per day, last 30 days" emptyText="No new users in the last 30 days" unit="user" />
           </div>
         </section>
       ) : null}

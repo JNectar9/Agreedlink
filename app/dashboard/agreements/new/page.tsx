@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { requireSession } from '@/lib/data';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
-import { CURRENCIES, CURRENCY_CODES } from '@/lib/money';
+import { currencyOptions } from '@/lib/money';
+import { CurrencyField } from '@/components/CurrencyField';
 import { getTemplate } from '@/lib/templates';
 import { createAgreementAction } from '../../actions';
 
@@ -38,12 +39,7 @@ export default async function NewAgreementPage({ searchParams }: { searchParams:
             <div><label htmlFor="delivery_date" className="label">Delivery date</label><input id="delivery_date" name="delivery_date" type="date" required className="input" /></div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="currency" className="label">Currency</label>
-              <select id="currency" name="currency" defaultValue={profile.default_currency} className="input">
-                {CURRENCY_CODES.map((c) => (<option key={c} value={c}>{c} - {CURRENCIES[c].label}</option>))}
-              </select>
-            </div>
+            <CurrencyField id="currency" name="currency" label="Currency" defaultValue={profile.default_currency} currencies={currencyOptions()} hint="Starts from your saved currency. Choose another for this agreement if needed." />
             <div><label htmlFor="amount" className="label">Total project price</label><input id="amount" name="amount" inputMode="decimal" required placeholder="1500.00" className="input" /><p className="hint">Digits and one decimal point, for example 1,500.00</p></div>
           </div>
         </fieldset>

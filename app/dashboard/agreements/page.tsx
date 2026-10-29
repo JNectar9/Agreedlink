@@ -3,17 +3,18 @@ import { FilePlus2, PlusCircle, Search } from 'lucide-react';
 import { requireSession, loadAgreements } from '@/lib/data';
 import { en } from '@/messages/en';
 import { AgreementRow } from '@/components/AgreementRow';
+import { STATUS_FILTERS, matchesFilter, normalizeFilter } from '@/lib/agreement-filter';
 
 export const metadata = { title: 'Agreements' };
 
-const FILTERS = ['all', 'awaiting_approval', 'approved', 'changes_pending', 'completed', 'declined', 'expired', 'cancelled'] as const;
+const FILTERS = STATUS_FILTERS;
 
 export default async function AgreementsPage({ searchParams }: { searchParams: { status?: string; q?: string } }) {
   const { supabase, profile } = await requireSession();
   const agreements = await loadAgreements(supabase);
-  const filter = FILTERS.includes(searchParams.status as (typeof FILTERS)[number]) ? (searchParams.status as string) : 'all';
+  const filter = normalizeFilter(searchParams.status);
   const q = (searchParams.q ?? '').trim().toLowerCase().slice(0, 80);
-  const visible = agreements.filter((a) => (filter === 'all' || a.shown === filter) && (!q || `${a.project_name} ${a.client_name}`.toLowerCase().includes(q)));
+  const visible = agreements.filter((a) => matchesFilter(a, filter) && (!q || `${a.project_name} ${a.client_name}`.toLowerCase().includes(q)));
 
   return (
     <div className="space-y-5">

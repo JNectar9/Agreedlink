@@ -6,7 +6,8 @@ import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { AvatarUploader } from '@/components/AvatarUploader';
 import { TimezoneField } from '@/components/TimezoneField';
-import { CURRENCIES, CURRENCY_CODES } from '@/lib/money';
+import { currencyOptions } from '@/lib/money';
+import { CurrencyField } from '@/components/CurrencyField';
 import { signOutAction } from '@/app/auth/actions';
 import { updateSettingsAction } from '../actions';
 
@@ -77,13 +78,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
 
         <div className="border-t border-line pt-4"><h2 className="text-lg">Preferences</h2></div>
         <TimezoneField defaultValue={profile.timezone} zones={zoneList} />
-        <div>
-          <label htmlFor="default_currency" className="label">Default currency for new agreements</label>
-          <select id="default_currency" name="default_currency" defaultValue={profile.default_currency} className="input">
-            {CURRENCY_CODES.map((c) => (<option key={c} value={c}>{c} - {CURRENCIES[c].label}</option>))}
-          </select>
-          <p className="hint">Each agreement keeps the currency it was created in. AgreedLink never converts amounts.</p>
-        </div>
+        <CurrencyField id="default_currency" name="default_currency" label="Default currency" defaultValue={profile.default_currency} currencies={currencyOptions()} hint="Used for new agreements and for prices on the pricing and billing pages. Each agreement keeps the currency it was created in, and AgreedLink never converts amounts." />
 
         <div className="sticky bottom-[68px] z-10 -mx-5 border-t border-line bg-white/95 p-3 backdrop-blur sm:-mx-6 md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
           <SubmitButton pendingText="Saving…" className="w-full md:w-auto">Save settings</SubmitButton>

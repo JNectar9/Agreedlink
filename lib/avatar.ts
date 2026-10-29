@@ -8,5 +8,8 @@ export async function signedAvatarUrl(supabase: ReturnType<typeof createClient>,
 }
 
 export const AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+/** What storage accepts after compression. The same limit is set on the Supabase bucket (migration 0005). */
+export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+/** Largest photo the browser will try to open and compress before upload. */
+export const AVATAR_SOURCE_MAX_BYTES = 20 * 1024 * 1024;
 export const AVATAR_EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };

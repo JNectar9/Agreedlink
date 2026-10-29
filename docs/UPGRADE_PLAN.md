@@ -22,6 +22,11 @@ Done in code: sign-up and log-in rebuilt to the navy wave reference (logo, tagli
 Needs your action: run migrations 0003 then 0004, redeploy, and confirm the phone number (see the update page).
 Plan features marked coming soon are NOT built: saved templates, attachments, PDF export, email invitations, advanced reporting, storage quotas, team workspace.
 
+## Upgrade 4: currency, time zones, filters, photos (this update)
+Done in code: every IANA time zone in a searchable region-grouped list (standard Intl data), device time zone detected at sign-up and saved, live clock for the chosen zone, every world currency in a searchable list with code, name and symbol (standard Intl data), per-agreement currency with the saved currency as the default, minor-unit digits taken from standard data (JPY 0, KWD 3), pricing and billing prices shown in the chosen currency using confirmed prices only (USD today; naira as an approximate range; other currencies fall back to USD with a clear note and no conversion), agreement filters ignore capitalisation and Approved includes every approved agreement, profile photos up to 5 MB with automatic compression before upload (bucket limit raised in migration 0005), "Peak: 1 agreement" wording, WhatsApp links validated and built in one place.
+Not done: live exchange rates and conversion (none implemented, so none is claimed), fixed GBP, EUR and NGN subscription prices (not confirmed), Paystack payments.
+Needs your action: run migration 0005, redeploy, confirm the phone number, and test on your phone.
+
 ## Phase 2: Paystack subscriptions in test mode (not started)
 Needs from you first: the Paystack test public and secret keys, a decision between charging in naira (fixed prices) or dollars (needs USD enabled on your Paystack account), and the plans created in the Paystack dashboard. The `subscriptions` table and plan limits already exist (migration 0004); this phase fills them from verified payments. Work: server-side checkout creation, server-side transaction verification, webhook signature check with idempotent processing, subscriptions table, billing page, plan limits enforced in the database, cancellation, failed-payment handling, tests. Live mode only after Paystack approves your business.
 

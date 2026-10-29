@@ -20,6 +20,11 @@ This is the honest list of what the first milestone does not do. Nothing here is
 - Not enforced because the features do not exist yet: saved template limits, attachment size and total storage limits, PDF export, email invitations, advanced reporting, team workspace.
 - Billing page shows the plan from the database. Upgrade, downgrade, cancellation and renewal dates need the Paystack phase.
 
+## Currency notes
+- Agreement amounts are never converted. Each agreement shows in its own currency everywhere, and totals on the Clients page are kept per currency.
+- Subscription prices come from `CONFIRMED_PRICES` in `lib/plans.ts` (USD only). Add a currency there only when that exact price is confirmed and set up with Paystack.
+- No exchange-rate service is connected. The naira range on the pricing page is an estimate from `NEXT_PUBLIC_NGN_RATE_LOW` and `NEXT_PUBLIC_NGN_RATE_HIGH`.
+
 ## Design and data notes
 - The "Watch Demo" button in the design reference is not included because no demo video exists.
 - "Invite client" and "Upload document" from the reference are not included because those features are not built (invitations and attachments are planned).

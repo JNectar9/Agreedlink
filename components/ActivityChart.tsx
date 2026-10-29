@@ -1,7 +1,8 @@
 import type { DayBucket } from '@/lib/stats';
+import { pluralize } from '@/lib/format';
 
 /** Simple area chart drawn from real counts. Shows an honest empty message when there is no data. */
-export function ActivityChart({ data, label, emptyText }: { data: DayBucket[]; label: string; emptyText: string }) {
+export function ActivityChart({ data, label, emptyText, unit = 'agreement' }: { data: DayBucket[]; label: string; emptyText: string; unit?: string }) {
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const w = 300;
   const h = 120;
@@ -24,7 +25,7 @@ export function ActivityChart({ data, label, emptyText }: { data: DayBucket[]; l
         </svg>
         {total === 0 ? <p className="absolute inset-0 flex items-center justify-center text-center text-sm text-muted">{emptyText}</p> : null}
       </div>
-      <div className="mt-1 flex justify-between text-[11px] text-muted"><span>{first}</span><span>Peak: {max === 1 && total === 0 ? 0 : max}</span><span>{last}</span></div>
+      <div className="mt-1 flex justify-between text-[11px] text-muted"><span>{first}</span><span>Peak: {total === 0 ? 0 : max} {pluralize(total === 0 ? 0 : max, unit)}</span><span>{last}</span></div>
     </div>
   );
 }

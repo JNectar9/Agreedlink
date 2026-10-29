@@ -6,6 +6,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { Notice } from '@/components/Notice';
 import { SetupNotice } from '@/components/SetupNotice';
 import { OAuthButtons } from '@/components/OAuthButtons';
+import { DetectTimezone } from '@/components/DetectTimezone';
 import { isSupabaseConfigured } from '@/lib/env';
 import { signUpAction } from '@/app/auth/actions';
 
@@ -17,6 +18,7 @@ export default function SignUpPage({ searchParams }: { searchParams: { error?: s
       {!isSupabaseConfigured() ? <SetupNotice /> : null}
       <Notice error={searchParams.error} />
       <form action={signUpAction} className="space-y-4">
+        <DetectTimezone />
         <AuthField icon="user" id="full_name" name="full_name" label="Full Name" autoComplete="name" required maxLength={120} defaultValue={searchParams.name?.slice(0, 120)} />
         <AuthField icon="mail" id="email" name="email" type="email" label="Email Address" autoComplete="email" required maxLength={254} defaultValue={searchParams.email?.slice(0, 254)} />
         <AuthField icon="phone" id="phone" name="phone" type="tel" label="Phone Number (optional)" autoComplete="tel" maxLength={30}
