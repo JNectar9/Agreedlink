@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react';
 import { Copy, Mail, MessageCircle, Share2 } from 'lucide-react';
 
-type Props = { url: string; subject: string; defaultMessage: string };
+type Props = { url: string; subject: string; defaultMessage: string; idPrefix?: string };
 
 /** Sharing never sends anything automatically: each button opens the user's own app. */
-export function ShareButtons({ url, subject, defaultMessage }: Props) {
+export function ShareButtons({ url, subject, defaultMessage, idPrefix = 'share' }: Props) {
   const [message, setMessage] = useState(defaultMessage);
   const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle');
   const [canShare, setCanShare] = useState(false);
@@ -23,12 +23,12 @@ export function ShareButtons({ url, subject, defaultMessage }: Props) {
   return (
     <div className="space-y-3">
       <div>
-        <label htmlFor="share-url" className="label">Customer link</label>
-        <input id="share-url" readOnly value={url} className="input font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+        <label htmlFor={`${idPrefix}-url`} className="label">Customer link</label>
+        <input id={`${idPrefix}-url`} readOnly value={url} className="input font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
       </div>
       <div>
-        <label htmlFor="share-message" className="label">Message (you can edit it)</label>
-        <textarea id="share-message" rows={5} value={message} onChange={(e) => setMessage(e.target.value)} className="input" />
+        <label htmlFor={`${idPrefix}-message`} className="label">Message (you can edit it)</label>
+        <textarea id={`${idPrefix}-message`} rows={5} value={message} onChange={(e) => setMessage(e.target.value)} className="input" />
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={copy} className="btn-primary"><Copy size={16} aria-hidden="true" /> Copy link</button>

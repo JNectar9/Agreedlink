@@ -27,6 +27,11 @@ Done in code: every IANA time zone in a searchable region-grouped list (standard
 Not done: live exchange rates and conversion (none implemented, so none is claimed), fixed GBP, EUR and NGN subscription prices (not confirmed), Paystack payments.
 Needs your action: run migration 0005, redeploy, confirm the phone number, and test on your phone.
 
+## Upgrade 5: change request calculator and customer identity (this update)
+Done in code: change requests now take a price change (additional cost or reduction) and a revised deadline; a live calculator shows original, current and revised price and deadline; the database recalculates the revised total from the approved total and rejects a stale or duplicate submission; the original agreement is untouched until approval; every proposal shows Pending, Approved or Rejected with its dates, resulting version and who decided, and how; WhatsApp, email and device sharing for a change; searchable client records linked to agreements with a verified or not verified email badge; a customer portal where a signed-in customer with a confirmed email can claim and view their agreements across businesses; approvals made through the secure link still need no account; decisions record whether they were a typed name on a link or a signed-in confirmed email.
+Not done: approving or rejecting inside the portal (decisions use the secure link), phone verification (no SMS provider, so phones are always shown as not verified), email invitations, a separate per-change link (the agreement's private link shows the open change).
+Needs your action: run migrations 0006 then 0007, keep Confirm email on, redeploy, and test.
+
 ## Phase 2: Paystack subscriptions in test mode (not started)
 Needs from you first: the Paystack test public and secret keys, a decision between charging in naira (fixed prices) or dollars (needs USD enabled on your Paystack account), and the plans created in the Paystack dashboard. The `subscriptions` table and plan limits already exist (migration 0004); this phase fills them from verified payments. Work: server-side checkout creation, server-side transaction verification, webhook signature check with idempotent processing, subscriptions table, billing page, plan limits enforced in the database, cancellation, failed-payment handling, tests. Live mode only after Paystack approves your business.
 

@@ -36,3 +36,8 @@ test('footer shows each contact detail once', async ({ page }) => {
   await expect(footer.getByRole('link', { name: /\+234\d{10}/ })).toHaveCount(1);
   await expect(footer.getByRole('link', { name: /@gmail\.com/ })).toHaveCount(1);
 });
+
+test('the customer portal asks signed-out visitors to log in and returns them afterwards', async ({ page }) => {
+  await page.goto('/portal');
+  await expect(page).toHaveURL(/\/signin\?next=%2Fportal/);
+});

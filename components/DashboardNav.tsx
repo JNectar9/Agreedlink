@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, UserRound, Users } from 'lucide-react';
+import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, UserRound, Users, Inbox } from 'lucide-react';
 
 type Item = { href: string; label: string; short: string; Icon: typeof Bell; bottom: boolean; badge?: boolean };
 
@@ -12,7 +12,8 @@ const items: Item[] = [
   { href: '/dashboard/clients', label: 'Clients', short: 'Clients', Icon: Users, bottom: false },
   { href: '/dashboard/notifications', label: 'Notifications', short: 'Alerts', Icon: Bell, bottom: true, badge: true },
   { href: '/dashboard/billing', label: 'Billing', short: 'Billing', Icon: CreditCard, bottom: false },
-  { href: '/dashboard/settings', label: 'Settings', short: 'Profile', Icon: Settings, bottom: false }
+  { href: '/dashboard/settings', label: 'Settings', short: 'Profile', Icon: Settings, bottom: false },
+  { href: '/portal', label: 'My agreements (as a customer)', short: 'Portal', Icon: Inbox, bottom: false }
 ];
 
 const mobileProfile: Item = { href: '/dashboard/settings', label: 'Profile', short: 'Profile', Icon: UserRound, bottom: true };

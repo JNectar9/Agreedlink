@@ -20,6 +20,12 @@ This is the honest list of what the first milestone does not do. Nothing here is
 - Not enforced because the features do not exist yet: saved template limits, attachment size and total storage limits, PDF export, email invitations, advanced reporting, team workspace.
 - Billing page shows the plan from the database. Upgrade, downgrade, cancellation and renewal dates need the Paystack phase.
 
+## Customer identity notes
+- A customer is shown as verified only after they sign up, confirm their email, and claim records carrying that exact email. This relies on Supabase "Confirm email" staying ON. If it is switched off, do not rely on verified badges.
+- If a business changes a client's email, the earlier verification is removed.
+- Phone numbers are stored but never shown as verified.
+- The portal is read only. A customer decides on changes through the private link, signed in or not.
+
 ## Currency notes
 - Agreement amounts are never converted. Each agreement shows in its own currency everywhere, and totals on the Clients page are kept per currency.
 - Subscription prices come from `CONFIRMED_PRICES` in `lib/plans.ts` (USD only). Add a currency there only when that exact price is confirmed and set up with Paystack.

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { isCurrencyCode, parseMoneyToMinor, type CurrencyCode } from './money';
-import { compareTerms, type Terms } from './terms';
+import { isCurrencyCode, parseMoneyToMinor } from './money';
+import type { Terms } from './terms';
 
 export type Result<T> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -78,42 +78,6 @@ export function parseAgreementForm(input: Record<string, unknown>): Result<{ ter
       payment_terms_text: v.payment_terms_text
     }
   };
-}
-
-const changeSchema = z.object({
-  description: text(2000, 1),
-  reason: text(2000, 1),
-  notes_for_customer: optionalText(2000),
-  new_amount: z.string().trim().min(1, 'Enter the revised total price.'),
-  new_delivery_date: dateString,
-  new_included_revisions: z.coerce.number().int().min(0).max(50),
-  deliverables: text(4000, 1),
-  excluded_work: optionalText(2000)
-});
-
-export function parseChangeForm(
-  input: Record<string, unknown>,
-  current: Terms
-): Result<{ proposed: Terms; description: string; reason: string; notes: string }> {
-  const parsed = changeSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const v = parsed.data;
-  const amount = parseMoneyToMinor(v.new_amount, current.currency as CurrencyCode);
-  if (amount === null || amount <= 0) {
-    return { ok: false, error: 'revised price: enter a positive amount using digits and an optional decimal point.' };
-  }
-  const proposed: Terms = {
-    ...current,
-    amount_minor: amount,
-    delivery_date: v.new_delivery_date,
-    included_revisions: v.new_included_revisions,
-    deliverables: v.deliverables,
-    excluded_work: v.excluded_work
-  };
-  if (!compareTerms(current, proposed).some((row) => row.changed)) {
-    return { ok: false, error: 'No terms changed. Update the price, date, revisions or scope first.' };
-  }
-  return { ok: true, proposed, description: v.description, reason: v.reason, notes: v.notes_for_customer };
 }
 
 export function parseDecision(

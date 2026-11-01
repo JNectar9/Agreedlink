@@ -4,7 +4,12 @@ import { ArrowLeft, ExternalLink, History, MessageSquare, RefreshCw, ShieldOff }
 import { requireSession, displayStatus, OPEN_CHANGE, type AgreementRow, type ChangeRow } from '@/lib/data';
 import { customerUrl } from '@/lib/links';
 import { compareTerms, priceDifference, pricingLabel, type Terms } from '@/lib/terms';
-import { formatMinorSafe, minorToInputString, isCurrencyCode } from '@/lib/money';
+import { formatMinorSafe } from '@/lib/money';
+import { randomUUID } from 'node:crypto';
+import { describeIdentity } from '@/lib/identity';
+import { buildChangeShareMessage } from '@/lib/share-change';
+import { ChangeCalculator } from '@/components/ChangeCalculator';
+import { ChangeHistory } from '@/components/ChangeHistory';
 import { formatDateTime, formatPlainDate } from '@/lib/time';
 import { en } from '@/messages/en';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -30,7 +35,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
   const a = row as AgreementRow;
 
   const [versionsRes, changesRes, eventsRes, linkRes, approvalsRes, messagesRes] = await Promise.all([
-    supabase.from('agreement_versions').select('version_number, terms').eq('agreement_id', a.id),
+    supabase.from('agreement_versions').select('version_number, terms, change_request_id').eq('agreement_id', a.id),
     supabase.from('change_requests').select('*').eq('agreement_id', a.id).order('created_at', { ascending: false }),
     supabase.from('agreement_events').select('*').eq('agreement_id', a.id).order('id', { ascending: false }),
     supabase.from('share_links').select('*').eq('agreement_id', a.id).is('revoked_at', null).maybeSingle(),
@@ -40,6 +45,9 @@ export default async function AgreementPage({ params, searchParams }: { params: 
 
   const current = (versionsRes.data ?? []).find((v) => v.version_number === a.current_version)?.terms as Terms | undefined;
   if (!current) notFound();
+  const original = ((versionsRes.data ?? []).find((v) => v.version_number === 1)?.terms ?? current) as Terms;
+  const versionByChange: Record<string, number> = {};
+  for (const v of versionsRes.data ?? []) if (v.change_request_id) versionByChange[v.change_request_id as string] = v.version_number as number;
   const changes = (changesRes.data ?? []) as ChangeRow[];
   const open = changes.find((c) => OPEN_CHANGE.includes(c.status));
   const events = (eventsRes.data ?? []) as EventRow[];
@@ -69,7 +77,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         <h2 id="terms-h" className="text-lg">Current terms (version {a.current_version})</h2>
         <p className="mt-1 text-sm text-muted">
           {approval
-            ? `Approved by the name entered by the customer: ${approval.approved_by_name}, on ${formatDateTime(approval.approved_at, tz)}. Identity is not verified.`
+            ? `Approved by ${approval.approved_by_name} on ${formatDateTime(approval.approved_at, tz)}. ${describeIdentity(approval).label}: ${describeIdentity(approval).detail}`
             : a.status === 'awaiting_approval' ? 'Waiting for the customer to approve this version.' : 'This version has no recorded approval.'}
         </p>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
@@ -110,49 +118,31 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         )}
       </section>
 
-      {a.status === 'approved' ? (
+      {a.status === 'approved' || changes.length > 0 ? (
         <section className="card" aria-labelledby="change-h">
-          <h2 id="change-h" className="text-lg">Changes</h2>
+          <h2 id="change-h" className="text-lg">Change requests</h2>
           {open ? (
             <div className="mt-3 space-y-4">
-              <p className="text-sm"><span className="font-semibold text-navy">{open.status === 'clarification_requested' ? 'The customer asked for clarification.' : 'Waiting for the customer.'}</span> {open.description}</p>
-              <ComparisonTable rows={compareTerms(current, open.proposed_terms)} difference={priceDifference(current, open.proposed_terms)} />
+              <p className="text-sm"><span className="font-semibold text-navy">{open.status === 'clarification_requested' ? 'Pending: the customer asked a question.' : 'Pending: waiting for the customer.'}</span> {open.description}</p>
+              <ComparisonTable rows={compareTerms(current, open.proposed_terms, original)} difference={priceDifference(current, open.proposed_terms)} />
+              {built ? (
+                <ShareButtons idPrefix="change-share" url={built.url} subject={`Change proposed: ${a.project_name}`}
+                  defaultMessage={buildChangeShareMessage({ creator: creatorName, project: a.project_name, url: built.url, currency: a.currency, currentMinor: current.amount_minor, newMinor: open.proposed_terms.amount_minor, deltaMinor: open.price_delta_minor, currentDate: current.delivery_date, newDate: open.proposed_terms.delivery_date, description: open.description })} />
+              ) : <p className="text-sm text-muted">Create a customer link above to share this change.</p>}
               <form action={withdrawChangeAction.bind(null, a.id, open.id)}><SubmitButton variant="secondary">Withdraw this proposal</SubmitButton></form>
               {open.status === 'clarification_requested' ? <p className="text-sm text-muted">To answer, submit a revised proposal below. It replaces this one.</p> : null}
             </div>
           ) : null}
-          {(!open || open.status === 'clarification_requested') ? (
-            <details className="mt-4 rounded-xl border border-line p-4">
+          {a.status === 'approved' && (!open || open.status === 'clarification_requested') ? (
+            <details className="mt-4 rounded-xl border border-line p-4" open={!open && changes.length === 0}>
               <summary className="cursor-pointer text-sm font-semibold text-brand">{open ? 'Send a revised proposal' : 'Propose a change'}</summary>
-              <form action={proposeChangeAction.bind(null, a.id)} className="mt-4 space-y-4">
-                <div><label htmlFor="description" className="label">What is changing</label><textarea id="description" name="description" required maxLength={2000} rows={3} className="input" /></div>
-                <div><label htmlFor="reason" className="label">Reason for the change</label><textarea id="reason" name="reason" required maxLength={2000} rows={2} className="input" /></div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div><label htmlFor="new_amount" className="label">Revised total price ({a.currency})</label><input id="new_amount" name="new_amount" inputMode="decimal" required defaultValue={isCurrencyCode(a.currency) ? minorToInputString(a.current_amount_minor, a.currency) : ''} className="input" /></div>
-                  <div><label htmlFor="new_delivery_date" className="label">Revised delivery date</label><input id="new_delivery_date" name="new_delivery_date" type="date" required defaultValue={a.current_delivery_date} className="input" /></div>
-                </div>
-                <div><label htmlFor="new_included_revisions" className="label">Included revisions</label><input id="new_included_revisions" name="new_included_revisions" type="number" min={0} max={50} required defaultValue={current.included_revisions} className="input" /></div>
-                <div><label htmlFor="deliverables" className="label">Deliverables after the change</label><textarea id="deliverables" name="deliverables" required maxLength={4000} rows={4} defaultValue={current.deliverables} className="input" /></div>
-                <div><label htmlFor="excluded_work" className="label">Work not included after the change</label><textarea id="excluded_work" name="excluded_work" maxLength={2000} rows={2} defaultValue={current.excluded_work} className="input" /></div>
-                <div><label htmlFor="notes_for_customer" className="label">Note for the customer (optional)</label><textarea id="notes_for_customer" name="notes_for_customer" maxLength={2000} rows={2} className="input" /></div>
-                <p className="text-sm text-muted">Nothing changes until the customer approves. The current terms stay in force until then.</p>
-                <SubmitButton>Save proposal</SubmitButton>
-              </form>
+              <ChangeCalculator action={proposeChangeAction.bind(null, a.id)} idempotencyKey={randomUUID()} currency={a.currency}
+                originalAmountMinor={original.amount_minor} originalDeliveryDate={original.delivery_date}
+                currentAmountMinor={a.current_amount_minor} currentDeliveryDate={a.current_delivery_date} currentRevisions={current.included_revisions}
+                currentDeliverables={current.deliverables} currentExcluded={current.excluded_work} currentVersion={a.current_version} />
             </details>
           ) : null}
-          {changes.filter((c) => !OPEN_CHANGE.includes(c.status)).length > 0 ? (
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-navy">Earlier proposals</h3>
-              <ul className="mt-2 divide-y divide-line text-sm">
-                {changes.filter((c) => !OPEN_CHANGE.includes(c.status)).map((c) => (
-                  <li key={c.id} className="py-3">
-                    <p className="font-medium">{c.description}</p>
-                    <p className="text-muted">{c.status.replace('_', ' ')}{c.decided_by_name ? ` by ${c.decided_by_name}` : ''}{c.decided_at ? ` on ${formatDateTime(c.decided_at, tz)}` : ''}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <ChangeHistory changes={changes} versionByChange={versionByChange} currency={a.currency} timeZone={tz} />
         </section>
       ) : null}
 

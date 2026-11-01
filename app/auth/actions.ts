@@ -1,7 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { isSupabaseConfigured, siteUrl } from '@/lib/env';
+import { isSupabaseConfigured, safeNextPath, siteUrl } from '@/lib/env';
 import { parseSignUpForm } from '@/lib/auth-validation';
 import { isValidTimeZone } from '@/lib/time';
 
@@ -20,7 +20,7 @@ export async function signInAction(formData: FormData) {
     if (error.code === 'email_not_confirmed') go('/signin', 'error', 'Please confirm your email address first. Check your inbox for the confirmation link.');
     go('/signin', 'error', 'The email or password is incorrect.');
   }
-  redirect('/dashboard');
+  redirect(safeNextPath(String(formData.get('next') ?? '')));
 }
 
 export async function signUpAction(formData: FormData) {

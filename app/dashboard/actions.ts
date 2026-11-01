@@ -2,7 +2,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { defaultExpiry, encryptToken, generateToken, hashToken } from '@/lib/tokens';
-import { parseAgreementForm, parseChangeForm } from '@/lib/validation';
+import { parseAgreementForm } from '@/lib/validation';
+import { parseChangeProposal } from '@/lib/change-request';
 import { isCurrencyCode } from '@/lib/money';
 import { normalizePhone } from '@/lib/auth-validation';
 import { isValidTimeZone } from '@/lib/time';
@@ -46,6 +47,8 @@ export async function createAgreementAction(formData: FormData) {
     p_idempotency_key: String(formData.get('idempotency_key') ?? '').slice(0, 80) || null
   });
   if (error || !data) go('/dashboard/agreements/new', 'error', copyForDbError(error?.message ?? ''));
+  // Link the agreement to a customer record. If this fails the agreement still exists and can be linked later.
+  await supabase.rpc('link_agreement_customer', { p_agreement: String(data) });
   go(agreementPath(String(data)), 'ok', 'Agreement saved. Share the customer link below.');
 }
 
@@ -61,17 +64,20 @@ export async function proposeChangeAction(agreementId: string, formData: FormDat
     .eq('version_number', agreement.current_version)
     .maybeSingle();
   if (!version) go(agreementPath(agreementId), 'error', errorCopy('not_found'));
-  const parsed = parseChangeForm(Object.fromEntries(formData), version.terms as Terms);
+  const parsed = parseChangeProposal(Object.fromEntries(formData), version.terms as Terms);
   if (!parsed.ok) go(agreementPath(agreementId), 'error', parsed.error);
   const { error } = await supabase.rpc('propose_change', {
     p_agreement: agreementId,
     p_description: parsed.description,
     p_reason: parsed.reason,
     p_notes: parsed.notes,
-    p_proposed: parsed.proposed
+    p_proposed: parsed.proposed,
+    p_delta: parsed.delta,
+    p_base_version: agreement.current_version,
+    p_idempotency_key: parsed.idempotencyKey
   });
   if (error) go(agreementPath(agreementId), 'error', copyForDbError(error.message));
-  go(agreementPath(agreementId), 'ok', 'Change proposed. Share the same customer link so they can review it.');
+  go(agreementPath(agreementId), 'ok', 'Change proposed. It is pending until your customer decides. Share the message below so they can review it.');
 }
 
 export async function withdrawChangeAction(agreementId: string, changeId: string) {
@@ -189,5 +195,30 @@ export async function removeAvatarAction() {
   if (error) go('/dashboard/settings', 'error', 'Your photo could not be removed. Please try again.');
   if (before?.avatar_path) await supabase.storage.from('avatars').remove([before.avatar_path]);
   go('/dashboard/settings', 'ok', 'Profile photo removed.');
+}
+
+export async function importClientsAction() {
+  const { supabase } = await session();
+  const { data, error } = await supabase.rpc('link_existing_customers');
+  if (error) go('/dashboard/clients', 'error', 'Clients could not be imported. Run the latest database migrations (0006 and 0007) and try again.');
+  go('/dashboard/clients', 'ok', `Linked ${data ?? 0} existing agreement${data === 1 ? '' : 's'} to client records.`);
+}
+
+export async function updateCustomerAction(customerId: string, formData: FormData) {
+  if (!UUID.test(customerId)) redirect('/dashboard/clients');
+  const { supabase } = await session();
+  const text = (name: string) => String(formData.get(name) ?? '').trim();
+  const name = text('name');
+  const email = text('email').toLowerCase();
+  const notes = text('notes');
+  const phone = normalizePhone(text('phone'));
+  const back = (kind: 'error' | 'ok', message: string) => go(`/dashboard/clients/${customerId}`, kind, message);
+  if (!name || name.length > 120) back('error', 'Enter a client name of up to 120 characters.');
+  if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)) back('error', 'Enter a valid email address or leave it empty.');
+  if (phone === null) back('error', 'Enter the phone number with its country code, for example +234...');
+  if (notes.length > 1000) back('error', 'Notes must be 1,000 characters or fewer.');
+  const { error } = await supabase.from('customers').update({ name, email: email || null, phone: phone ?? '', notes }).eq('id', customerId);
+  if (error) back('error', error.code === '23505' ? 'Another client already uses that email address.' : 'The client could not be saved.');
+  back('ok', 'Client saved. If you changed the email, any earlier verification was removed.');
 }
 

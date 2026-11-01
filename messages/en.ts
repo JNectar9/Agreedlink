@@ -45,6 +45,8 @@ export const en = {
     plan_limit: 'You have reached the active agreement limit for your plan. Complete or cancel an agreement to free a place, or see the plans.',
     free_plan_limit: 'The free plan allows 3 new agreements per month. Paid plans are not available yet.',
     change_already_pending: 'A proposal is already waiting for the customer. Withdraw it before sending another.',
+    invalid_amount: 'The revised total must stay above zero.',
+    currency_mismatch: 'The currency of a change must match the agreement.',
     invalid_state: 'That action is not available for the current status.',
     not_found: 'We could not find that agreement.',
     default: 'Something went wrong. Please try again.'

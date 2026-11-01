@@ -22,7 +22,7 @@ export type Terms = {
   payment_terms_text: string;
 };
 
-export type TermRow = { key: string; label: string; before: string; after: string; changed: boolean };
+export type TermRow = { key: string; label: string; before: string; after: string; changed: boolean; original?: string };
 
 function summary(t: Terms) {
   return {
@@ -35,22 +35,24 @@ function summary(t: Terms) {
 }
 
 /** Side-by-side rows for the current approved terms versus a proposal. */
-export function compareTerms(current: Terms, proposed: Terms): TermRow[] {
+export function compareTerms(current: Terms, proposed: Terms, original?: Terms): TermRow[] {
   const a = summary(current);
   const b = summary(proposed);
-  const row = (key: string, label: string, before: string, after: string): TermRow => ({
+  const o = original ? summary(original) : null;
+  const row = (key: string, label: string, before: string, after: string, orig?: string): TermRow => ({
     key,
     label,
     before,
     after,
-    changed: before !== after
+    changed: before !== after,
+    original: orig !== undefined && orig !== before ? orig : undefined
   });
   return [
-    row('price', 'Total price', a.price, b.price),
-    row('delivery', 'Delivery date', a.delivery, b.delivery),
-    row('revisions', 'Included revisions', a.revisions, b.revisions),
-    row('deliverables', 'Deliverables', a.deliverables, b.deliverables),
-    row('excluded', 'Work not included', a.excluded, b.excluded)
+    row('price', 'Total price', a.price, b.price, o?.price),
+    row('delivery', 'Delivery date', a.delivery, b.delivery, o?.delivery),
+    row('revisions', 'Included revisions', a.revisions, b.revisions, o?.revisions),
+    row('deliverables', 'Deliverables', a.deliverables, b.deliverables, o?.deliverables),
+    row('excluded', 'Work not included', a.excluded, b.excluded, o?.excluded)
   ];
 }
 

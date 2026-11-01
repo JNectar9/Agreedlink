@@ -21,7 +21,8 @@ Every file in the project and what it does.
 | `app/dashboard/agreements/new/page.tsx` | Create-agreement form (single page in this milestone). |
 | `app/dashboard/agreements/page.tsx` | Full agreement list with search and status filters. |
 | `app/dashboard/billing/page.tsx` | Current plan, usage, downgrade explanation, and the three plans. |
-| `app/dashboard/clients/page.tsx` | Clients built from agreements, totals kept per currency. |
+| `app/dashboard/clients/[id]/page.tsx` | One client: verification, editable details, private notes, agreement history. |
+| `app/dashboard/clients/page.tsx` | Searchable client records with verification badges and agreement counts. |
 | `app/dashboard/layout.tsx` | Authenticated shell: navy sidebar, header search, bottom navigation on phones. |
 | `app/dashboard/loading.tsx` | Dashboard skeleton shown while data loads. |
 | `app/dashboard/notifications/page.tsx` | All notifications with mark-all-read. |
@@ -35,6 +36,10 @@ Every file in the project and what it does.
 | `app/loading.tsx` | Brand loading screen (navy, logo, tagline, progress bar). |
 | `app/not-found.tsx` | 404 page. |
 | `app/page.tsx` | Home page: hero with previews, features, how it works, pricing, FAQ, call to action. |
+| `app/portal/[id]/page.tsx` | Customer portal: one agreement with terms, versions, and change requests. |
+| `app/portal/actions.ts` | Claim records linked to the signed-in customer email. |
+| `app/portal/layout.tsx` | Customer portal shell (login required). |
+| `app/portal/page.tsx` | Customer portal: claim records and list agreements from all businesses. |
 | `app/pricing/page.tsx` | Pricing page with plans and questions. |
 | `app/privacy/page.tsx` | Starter privacy policy (flagged for legal review). |
 | `app/reset-password/page.tsx` | Choose a new password from the emailed link. |
@@ -47,6 +52,8 @@ Every file in the project and what it does.
 | `components/AuthShell.tsx` | Navy screen with logo, tagline and waves for sign up, log in and password pages. |
 | `components/Avatar.tsx` | Profile picture or initials. |
 | `components/AvatarUploader.tsx` | Pick, preview, upload, replace and remove a profile photo. |
+| `components/ChangeCalculator.tsx` | Change request form with a live cost calculator. |
+| `components/ChangeHistory.tsx` | All change requests with status, price change, version and decision identity. |
 | `components/ComparisonTable.tsx` | Side-by-side current versus proposed terms with Changed labels. |
 | `components/CurrencyField.tsx` | Searchable world currency field (code, name, symbol). |
 | `components/DashboardNav.tsx` | Sidebar and phone bottom navigation with active state and unread badge. |
@@ -78,17 +85,21 @@ Every file in the project and what it does.
 | `lib/agreement-filter.ts` | Case-insensitive status filtering where Approved includes every approved agreement. |
 | `lib/auth-validation.ts` | Sign-up validation and phone number normalisation. |
 | `lib/avatar.ts` | Avatar rules and signed photo links. |
+| `lib/change-request.ts` | Price change parsing, safe revised total, and change proposal validation. |
 | `lib/contact.ts` | Contact form validation and spam checks. |
+| `lib/customers.ts` | Customer verification status and safe search term. |
 | `lib/data.ts` | Session guard, shared row types, display-status helper. |
 | `lib/env.ts` | Reads configuration and reports whether setup is complete. |
 | `lib/faq.ts` | FAQ questions and honest answers. |
 | `lib/format.ts` | Small formatting helpers (pluralize). |
+| `lib/identity.ts` | Honest description of how an approval was made. |
 | `lib/image-compress.ts` | Browser photo resize and compression before upload. |
 | `lib/image-size.ts` | Photo resize maths. |
 | `lib/links.ts` | Builds the customer URL from the encrypted token (not a server action). |
 | `lib/money.ts` | World currencies from standard data, integer minor units, formatting with correct symbols. |
 | `lib/plans.ts` | Plan definitions, confirmed prices per currency, and price display without invented conversions. |
 | `lib/platform.ts` | Real platform counts from the database (owner dashboard, public strip). |
+| `lib/share-change.ts` | Message for sharing a change request. |
 | `lib/site.ts` | Company name, contact details (defaults from JNectar) and WhatsApp link helper. |
 | `lib/stats.ts` | Counts timestamps per day in a time zone (for charts). |
 | `lib/supabase/admin.ts` | Server-only service-role client used for customer functions. |
@@ -111,6 +122,8 @@ Every file in the project and what it does.
 | `supabase/migrations/0003_cancelled_status.sql` | Adds the cancelled agreement status. Run alone, before 0004. |
 | `supabase/migrations/0004_accounts_plans_avatars.sql` | Profile phone, avatar and terms fields, new-user trigger, plans and subscriptions tables, active-agreement limit, cancel_agreement, private avatars bucket. |
 | `supabase/migrations/0005_avatar_limit_timezone_signup.sql` | Photo limit 5 MB; new accounts use the detected time zone, NGN for Lagos. |
+| `supabase/migrations/0006_customer_identity_tables.sql` | Customer records, linking to agreements, claiming by confirmed email, read-only portal functions. |
+| `supabase/migrations/0007_change_calculator_and_decisions.sql` | Server-side change calculator, duplicate protection, and identity recorded with every decision. |
 | `tailwind.config.ts` | AgreedLink colour tokens (navy, blue, status colours) and font. |
 | `tests/e2e/auth.spec.ts` | Playwright checks for sign-up fields, show/hide password, terms checkbox, footer contacts. |
 | `tests/e2e/layout.spec.ts` | Playwright checks for no sideways scrolling at 320, 360, 390 and 1280 pixels. |
@@ -119,8 +132,11 @@ Every file in the project and what it does.
 | `tests/unit/admin.test.ts` | Unit tests for the owner check. |
 | `tests/unit/agreement-filter.test.ts` | Unit tests for filtering. |
 | `tests/unit/auth-validation.test.ts` | Unit tests for sign-up validation and phone numbers. |
+| `tests/unit/change-request.test.ts` | Unit tests for the calculator and change validation. |
 | `tests/unit/contact.test.ts` | Unit tests for contact validation and spam checks. |
 | `tests/unit/format.test.ts` | Unit tests for plural wording and photo sizing. |
+| `tests/unit/identity.test.ts` | Unit tests for identity wording, customer verification, search safety and share message. |
+| `tests/unit/migrations.test.ts` | Checks the new migrations for privacy and safety rules. |
 | `tests/unit/money.test.ts` | Unit tests for money parsing and formatting. |
 | `tests/unit/plans.test.ts` | Unit tests for plans, naira ranges, and sync with the database limits. |
 | `tests/unit/site.test.ts` | Unit tests for contact details and WhatsApp link. |

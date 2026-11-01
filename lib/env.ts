@@ -1,3 +1,8 @@
+/** Only allows redirects to paths inside this site. */
+export function safeNextPath(value: string | null | undefined, fallback = '/dashboard'): string {
+  return value && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\') ? value : fallback;
+}
+
 export function siteUrl(): string {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 }

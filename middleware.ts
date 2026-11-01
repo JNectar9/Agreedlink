@@ -7,8 +7,9 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const toSignIn = () => {
     const target = request.nextUrl.clone();
+    const wanted = request.nextUrl.pathname;
     target.pathname = '/signin';
-    target.search = '';
+    target.search = wanted === '/dashboard' ? '' : `?next=${encodeURIComponent(wanted)}`;
     return NextResponse.redirect(target);
   };
   if (!url || !key) return toSignIn();
@@ -31,4 +32,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ['/dashboard/:path*'] };
+export const config = { matcher: ['/dashboard/:path*', '/portal/:path*'] };

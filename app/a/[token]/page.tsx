@@ -7,8 +7,11 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { LocalTime } from '@/components/LocalTime';
 import { OpenBeacon } from '@/components/OpenBeacon';
+import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { isServerConfigured } from '@/lib/env';
+import { createClient } from '@/lib/supabase/server';
+import { describeIdentity } from '@/lib/identity';
+import { isServerConfigured, isSupabaseConfigured } from '@/lib/env';
 import { hashToken, TOKEN_PATTERN } from '@/lib/tokens';
 import { compareTerms, priceDifference, pricingLabel, type Terms } from '@/lib/terms';
 import { formatMinorSafe } from '@/lib/money';
@@ -26,7 +29,8 @@ type View = {
   status?: 'awaiting_approval' | 'approved' | 'declined' | 'completed' | 'expired' | 'draft';
   version?: number;
   terms?: Terms;
-  approval?: { approved_at: string; approved_by_name: string } | null;
+  original_terms?: Terms;
+  approval?: { approved_at: string; approved_by_name: string; auth_method?: string | null; verified_email?: string | null; email_matches_customer?: boolean | null } | null;
   change?: { id: string; status: string; description: string; reason: string; notes_for_customer: string; proposed_terms: Terms } | null;
 };
 
@@ -49,6 +53,14 @@ function Shell({ children }: { children: React.ReactNode }) {
         <p className="mt-1">Created by JNectar</p>
       </footer>
     </div>
+  );
+}
+
+function IdentityNote({ token, email }: { token: string; email: string | null }) {
+  return email ? (
+    <p className="rounded-xl bg-ok-bg p-3 text-sm text-ok">You are signed in as <strong>{email}</strong> (email confirmed). This will be recorded with your decision. You still type your name below.</p>
+  ) : (
+    <p className="rounded-xl bg-brand-soft p-3 text-sm text-navy">Your decision is recorded with the name you type and the time. Your identity is not verified. <Link href={`/signin?next=/a/${token}`} className="font-semibold text-brand">Log in</Link> or <Link href="/signup" className="font-semibold text-brand">create an account</Link> to attach a confirmed email, which is optional.</p>
   );
 }
 
@@ -77,6 +89,11 @@ export default async function CustomerPage({ params, searchParams }: { params: {
   }
 
   const t = view.terms;
+  let viewerEmail: string | null = null;
+  if (isSupabaseConfigured()) {
+    const { data: { user } } = await createClient().auth.getUser();
+    if (user?.email && user.email_confirmed_at) viewerEmail = user.email;
+  }
   const preview = searchParams.preview === '1';
   const pendingAgreement = view.status === 'awaiting_approval';
   const money = (m: number) => formatMinorSafe(m, t.currency);
@@ -86,6 +103,9 @@ export default async function CustomerPage({ params, searchParams }: { params: {
     <Shell>
       {!preview ? <OpenBeacon token={token} /> : <Notice info="Preview mode: the buttons are turned off and this view is not recorded as an open." />}
       <Notice error={searchParams.error} ok={doneText} />
+      {doneText && !viewerEmail ? (
+        <p className="rounded-xl border border-line bg-white p-3 text-sm text-muted">Want to keep every agreement you receive in one place? <Link href="/signup" className="font-semibold text-brand">Create a free account</Link> or <Link href="/signin?next=/portal" className="font-semibold text-brand">log in</Link>. Use the same email the business has for you, and confirm it.</p>
+      ) : null}
 
       <div className="card space-y-4">
         <div>
@@ -98,7 +118,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
               : (<span className="inline-flex items-center gap-1.5 rounded-full bg-ok-bg px-2.5 py-1 text-ok"><CheckCircle2 size={14} aria-hidden="true" /> {view.status === 'completed' ? 'Approved and marked completed by the sender' : 'Approved'}</span>)}
             <span className="ml-2 text-xs font-normal text-muted">Version {view.version}</span>
           </p>
-          {view.approval ? <p className="mt-2 text-sm text-muted">Approved by the name entered, {view.approval.approved_by_name}, on <LocalTime iso={view.approval.approved_at} />.</p> : null}
+          {view.approval ? <p className="mt-2 text-sm text-muted">Approved by {view.approval.approved_by_name} on <LocalTime iso={view.approval.approved_at} />. {describeIdentity(view.approval).label}: {describeIdentity(view.approval).detail}</p> : null}
         </div>
         {view.business && [view.business.email, view.business.phone, view.business.website, view.business.address].some(Boolean) ? (
           <p className="text-sm text-muted">Contact {view.creator_name}: {[view.business.email, view.business.phone, view.business.website, view.business.address].filter(Boolean).join(' · ')}</p>
@@ -121,6 +141,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
           <h2 className="text-lg">Your decision</h2>
           <p className="text-sm text-muted">Read the details above, then approve, ask a question, or decline. Nothing is final until you choose.</p>
           <input type="hidden" name="version" value={view.version} />
+          <IdentityNote token={token} email={viewerEmail} />
           <DecisionFields clarifyHint="Required if you ask for clarification. Optional if you decline." />
           {preview ? null : (
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -138,10 +159,11 @@ export default async function CustomerPage({ params, searchParams }: { params: {
           <p className="text-sm"><span className="font-medium text-navy">What is changing:</span> {view.change.description}</p>
           <p className="text-sm"><span className="font-medium text-navy">Reason:</span> {view.change.reason}</p>
           {view.change.notes_for_customer ? <p className="text-sm"><span className="font-medium text-navy">Note:</span> {view.change.notes_for_customer}</p> : null}
-          <ComparisonTable rows={compareTerms(t, view.change.proposed_terms)} difference={priceDifference(t, view.change.proposed_terms)} />
+          <ComparisonTable rows={compareTerms(t, view.change.proposed_terms, view.original_terms)} difference={priceDifference(t, view.change.proposed_terms)} />
           <p className="text-sm text-muted">The terms above under &quot;Current approved&quot; stay in force unless you approve this change.</p>
           <form action={decideChangeAction.bind(null, token)} className="space-y-4">
             <input type="hidden" name="change_id" value={view.change.id} />
+            <IdentityNote token={token} email={viewerEmail} />
             <DecisionFields clarifyHint="Required if you ask for clarification. Optional if you reject." />
             {preview ? null : (
               <div className="flex flex-col gap-2 sm:flex-row">

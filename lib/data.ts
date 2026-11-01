@@ -30,6 +30,7 @@ export type AgreementRow = {
   current_version: number;
   created_at: string;
   updated_at: string;
+  customer_id?: string | null;
 };
 
 export type ChangeRow = {
@@ -46,6 +47,9 @@ export type ChangeRow = {
   decided_by_name: string | null;
   decision_note: string | null;
   created_at: string;
+  decided_auth_method?: string | null;
+  decided_verified_email?: string | null;
+  decided_email_matches?: boolean | null;
 };
 
 export const OPEN_CHANGE = ['pending', 'clarification_requested'];
