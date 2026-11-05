@@ -45,8 +45,8 @@ export default async function HomePage() {
 
   // The payment answer follows what is actually switched on, so the page never promises a method that is not live.
   const payAnswer = pricing.paystackEnabled
-    ? 'You can pay by card through Paystack, charged in naira (NGN), or by manual bank transfer in US dollars. A card payment activates your plan once Paystack confirms it. A bank transfer is activated by an administrator after they verify your payment reference. Sign in and open Billing to choose.'
-    : 'Pay by manual bank transfer in US dollars. Sign in, open Billing, and send your payment reference. An administrator verifies the payment and activates your plan, and nothing changes until it is approved. Online card payment is not available yet.';
+    ? 'You can pay by card through Paystack, charged in naira (NGN), or by manual bank transfer in naira. A card payment activates your plan once Paystack confirms it. A bank transfer is activated by an administrator after they verify your payment reference. Sign in and open Billing to choose.'
+    : 'Pay by manual bank transfer in naira to the account shown on the Billing page, then send your payment reference. An administrator verifies the payment and activates your plan, and nothing changes until it is approved. Online card payment is not available yet.';
   const faqItems = FAQ.map((item) => (item.q === 'When will paid plans be available?' ? { q: 'How do I pay for Pro or Premium?', a: payAnswer } : item));
 
   return (
