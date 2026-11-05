@@ -1,7 +1,9 @@
 import Link from 'next/link';
-import { CheckCircle2, Clock, Mail, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
-import { PLAN_CONFIG, PLAN_ORDER } from '@/lib/plans';
+import { PLAN_CONFIG } from '@/lib/plans';
+import { PricingPlans } from '@/components/PricingPlans';
+import { ACTIVATION_NOTE, ACTIVATION_STEPS } from '@/lib/pricing-display';
 import { SITE, buildWhatsAppLink, isValidWhatsAppNumber, toWhatsAppDigits } from '@/lib/site';
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
@@ -67,7 +69,12 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
     <div className="max-w-5xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl">Billing</h1>
-        {isAdmin ? <Link href="/dashboard/admin/subscriptions" className="btn-secondary"><ShieldCheck size={16} aria-hidden="true" /> Admin subscriptions</Link> : null}
+        {isAdmin ? (
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/admin/subscriptions#settings" className="btn-secondary"><ShieldCheck size={16} aria-hidden="true" /> Update prices</Link>
+            <Link href="/dashboard/admin/subscriptions#requests" className="btn-secondary">Manage requests</Link>
+          </div>
+        ) : null}
       </div>
 
       <Notice error={searchParams.error} ok={searchParams.ok} />
@@ -108,56 +115,30 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       </section>
 
       <section aria-label="Plans" className="space-y-3">
-        <h2 className="text-lg">Plans</h2>
-        <div className="grid gap-4 lg:grid-cols-3">
-          {PLAN_ORDER.map((id) => {
-            const p = PLAN_CONFIG[id];
-            const lim = cfg?.limits?.[id];
-            const featured = id === 'pro';
-            return (
-              <div key={id} className={`card flex min-w-0 flex-col ${featured ? 'border-brand ring-1 ring-brand/30' : ''}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xl">{p.name}</h3>
-                  {planId === id ? <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-semibold text-ok">Current plan</span> : featured ? <span className="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-navy">Popular</span> : null}
-                </div>
-                <p className="mt-2 text-3xl font-bold text-navy">{usdShort(price(id))}<span className="text-base font-medium text-muted">/month</span></p>
-                {lim ? <p className="mt-1 text-xs text-muted">{lim.active_agreements} active agreements, {lim.saved_templates} saved template{lim.saved_templates === 1 ? '' : 's'}</p> : null}
-                <ul className="mt-4 flex-1 space-y-2 text-sm">
-                  {p.features.map((f) => (
-                    <li key={f.text} className="flex items-start gap-2">
-                      {f.live ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" /> : <Clock size={16} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />}
-                      <span className={f.live ? '' : 'text-muted'}>{f.text}{f.live ? '' : ' (coming soon)'}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="pt-6">
-                  {id === 'free' ? (
-                    <p className="text-center text-xs text-muted">{planId === 'free' ? 'You are on this plan.' : 'You return to Free when a paid plan ends.'}</p>
-                  ) : (
-                    <Link href={`/dashboard/billing?plan=${id}#request`} className={`${featured ? 'btn-primary' : 'btn-secondary'} w-full`}>
-                      {planId === id ? `Renew ${p.name}` : `Request ${p.name}`}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div>
+          <h2 className="text-lg">Plans</h2>
+          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} per month and Premium is {usdShort(price('premium'))} per month, in US dollars. Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
         </div>
-        <p className="text-xs text-muted">Subscription prices are in US dollars. If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
+        <PricingPlans
+          mode="billing"
+          currentPlan={planId}
+          prices={{ free: price('free'), pro: price('pro'), premium: price('premium') }}
+          limits={{ free: cfg?.limits?.free?.active_agreements, pro: cfg?.limits?.pro?.active_agreements, premium: cfg?.limits?.premium?.active_agreements }}
+        />
+        <p className="text-xs text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
       </section>
 
       <section id="request" aria-label="Pay and request a plan" className="grid gap-4 lg:grid-cols-2">
         <div className="card space-y-3">
           <h2 className="text-lg">How to pay</h2>
+          <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">{ACTIVATION_NOTE}</p>
           {instructions ? (
             <p className="whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{instructions}</p>
           ) : (
             <p className="rounded-xl bg-page p-4 text-sm text-muted">Payment instructions have not been added yet. Please contact support below and we will send them to you.</p>
           )}
           <ol className="list-decimal space-y-1 pl-5 text-sm text-ink">
-            <li>Pay the total using the instructions above.</li>
-            <li>Send the request form with your payment reference or transfer ID.</li>
-            <li>We check the payment and approve or reject your request. Your plan starts when it is approved.</li>
+            {ACTIVATION_STEPS.map((step) => <li key={step}>{step}</li>)}
           </ol>
           <div className="border-t border-line pt-3 text-sm">
             <p className="font-semibold text-navy">Need help?</p>
