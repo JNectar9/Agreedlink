@@ -28,10 +28,11 @@ export function availableFeatures(id: PlanId, activeLimit: number = PLAN_CONFIG[
       'Change requests with a side-by-side comparison',
       'Version and activity history',
       'Ready-made agreement templates',
+      '1 saved template',
       'Standard support'
     ];
   }
-  if (id === 'pro') return ['Everything in Free', limit];
+  if (id === 'pro') return ['Everything in Free', limit, '10 saved templates'];
   return ['Everything in Pro', limit, 'Priority support'];
 }
 
