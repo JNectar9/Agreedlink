@@ -42,8 +42,14 @@ describe('available versus coming soon', () => {
     expect(comingSoonFeatures('pro')).toContain('PDF export');
     expect(comingSoonFeatures('premium')).toContain('Team collaboration and shared workspace');
   });
+  it('lists saved templates as available now, and no longer as coming soon', () => {
+    expect(availableFeatures('free')).toContain('1 saved template');
+    expect(availableFeatures('pro')).toContain('10 saved templates');
+    for (const id of PLAN_ORDER) expect(comingSoonFeatures(id).some((f) => /saved template/i.test(f)), id).toBe(false);
+    expect(comingSoonFeatures('premium')).toContain('Advanced templates and reusable workflows');
+  });
   it('does not advertise planned features in the available lists', () => {
-    const planned = ['PDF export', 'saved template', 'Attachments', 'Client invitations', 'storage', 'Team collaboration', 'reporting'];
+    const planned = ['PDF export', 'Attachments', 'Client invitations', 'storage', 'Team collaboration', 'reporting'];
     for (const id of PLAN_ORDER) for (const f of availableFeatures(id)) for (const word of planned) expect(f.toLowerCase().includes(word.toLowerCase()), `${id}: ${f}`).toBe(false);
   });
 });
