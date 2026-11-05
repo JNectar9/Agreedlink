@@ -8,6 +8,8 @@ import { SITE, buildWhatsAppLink, isValidWhatsAppNumber, toWhatsAppDigits } from
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
+import { PaystackCheckout } from '@/components/PaystackCheckout';
+import { formatNgn, type PaystackBillingExtras, type PaystackConfigExtras } from '@/lib/paystack-checkout';
 import {
   isPaidPlan, planLabel, subscriptionErrorCopy, usd, usdShort,
   type MyRequestRow, type MySubscription, type PublicConfig, type RequestStatus
@@ -41,6 +43,11 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
 
   const sub = (subRes.data ?? null) as MySubscription | null;
   const cfg = (cfgRes.data ?? null) as PublicConfig | null;
+  const pcfg = (cfgRes.data ?? null) as PaystackConfigExtras | null;
+  const extras = (subRes.data ?? {}) as PaystackBillingExtras;
+  const cardPlan = extras.paystack ?? null;
+  const cardPayments = extras.paystack_payments ?? [];
+  const showCard = ready && pcfg?.paystack_enabled === true && Boolean(pcfg.ngn_prices);
   const requests = (reqRes.data ?? []) as MyRequestRow[];
   const isAdmin = adminRes.data === true;
   const setupError = subRes.error ?? cfgRes.error ?? null;
@@ -90,12 +97,12 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           <div>
             <dt className="text-muted">{sub?.current ? 'Paid access until' : 'Access until'}</dt>
             <dd className="font-semibold text-navy">
-              {sub?.current ? formatDateTime(sub.current.expires_at, tz) : planId === 'free' ? 'Not applicable' : 'Managed outside this page'}
+              {sub?.current ? formatDateTime(sub.current.expires_at, tz) : cardPlan?.current_period_end ? formatDateTime(cardPlan.current_period_end, tz) : planId === 'free' ? 'Not applicable' : 'Managed outside this page'}
             </dd>
           </div>
           <div>
             <dt className="text-muted">Type</dt>
-            <dd className="font-semibold text-navy">{sub?.current ? (sub.current.kind === 'complimentary' ? 'Complimentary' : 'Paid by transfer') : planId === 'free' ? 'Free' : 'Other'}</dd>
+            <dd className="font-semibold text-navy">{sub?.current ? (sub.current.kind === 'complimentary' ? 'Complimentary' : 'Paid by transfer') : cardPlan ? 'Paid by card (Paystack)' : planId === 'free' ? 'Free' : 'Other'}</dd>
           </div>
         </dl>
         {sub?.state === 'expired' && sub.last_expired_at ? (
@@ -127,6 +134,16 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         />
         <p className="text-xs text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
       </section>
+
+      {showCard && pcfg?.ngn_prices ? (
+        <PaystackCheckout
+          ngnPrices={pcfg.ngn_prices}
+          usdPrices={{ pro: price('pro'), premium: price('premium') }}
+          preselect={preselect}
+          blockedByManual={Boolean(sub?.current)}
+          activePaystackPlan={cardPlan?.plan ?? null}
+        />
+      ) : null}
 
       <section id="request" aria-label="Pay and request a plan" className="grid gap-4 lg:grid-cols-2">
         <div className="card space-y-3">
@@ -201,6 +218,23 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           </ul>
         )}
       </section>
+
+      {cardPayments.length > 0 ? (
+        <section className="card" aria-label="Card payments">
+          <h2 className="text-lg">Card payments</h2>
+          <ul className="mt-3 divide-y divide-line">
+            {cardPayments.map((p, i) => (
+              <li key={`${p.paid_at}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                <div>
+                  <p className="font-semibold text-navy">{planLabel(p.plan)} - {formatNgn(p.amount_minor)}</p>
+                  <p className="text-xs text-muted">Paid {formatDateTime(p.paid_at, tz)}. Covers {formatDateTime(p.period_start, tz)} to {formatDateTime(p.period_end, tz)}</p>
+                </div>
+                <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-semibold text-ok">Paid</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {sub && sub.history.length > 0 ? (
         <section className="card" aria-label="Subscription history">
