@@ -47,11 +47,11 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
   const extras = (subRes.data ?? {}) as PaystackBillingExtras;
   const cardPlan = extras.paystack ?? null;
   const cardPayments = extras.paystack_payments ?? [];
-  const showCard = ready && pcfg?.paystack_enabled === true && Boolean(pcfg.ngn_prices);
   const requests = (reqRes.data ?? []) as MyRequestRow[];
   const isAdmin = adminRes.data === true;
   const setupError = subRes.error ?? cfgRes.error ?? null;
   const ready = Boolean(sub && cfg && !setupError);
+  const showCard = ready && pcfg?.paystack_enabled === true && Boolean(pcfg.ngn_prices);
 
   const tz = profile.timezone;
   const active = agreements.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
