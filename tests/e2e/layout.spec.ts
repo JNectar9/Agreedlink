@@ -18,8 +18,10 @@ for (const width of widths) {
 
 test('landing page shows the reference headline and calls to action', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Make Agreements');
-  await expect(page.getByRole('link', { name: /Create an Agreement/ }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('I never said that.');
+  await expect(page.getByRole('link', { name: /Get Started Free/ }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /See How It Works/ })).toBeVisible();
+  await expect(page.getByText(/join thousands/i)).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible();
 });
 
