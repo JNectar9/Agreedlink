@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CreditCard, Mail, Settings, Users, Wallet, Bell, TrendingUp } from 'lucide-react';
 import { requireSession } from '@/lib/data';
 import { formatDateTime } from '@/lib/time';
+import { SITE } from '@/lib/site';
+import { RevenueChart } from '@/components/RevenueChart';
+import { parseDashboard, parseRange } from '@/lib/admin-dashboard';
 import { minorToInputString } from '@/lib/money';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
-import { isUuid, planLabel, subscriptionErrorCopy, usd, type PaidPlan, type PublicConfig, type RequestStatus } from '@/lib/subscriptions';
+import { isUuid, planLabel, subscriptionErrorCopy, usd, usdShort, type PaidPlan, type PublicConfig, type RequestStatus } from '@/lib/subscriptions';
 import {
   approveRequestAction, cancelSubscriptionAction, grantComplimentaryAction, rejectRequestAction, renewSubscriptionAction, updateConfigAction
 } from './actions';
@@ -29,15 +32,16 @@ type AdminSub = {
 
 const BADGE: Record<RequestStatus, string> = { pending: 'bg-warn-bg text-warn', approved: 'bg-ok-bg text-ok', rejected: 'bg-bad-bg text-bad' };
 
-function back(status: Filter, user?: string) {
+function back(status: Filter, user?: string, range: 6 | 12 = 6) {
   const q = new URLSearchParams();
   if (status !== 'pending') q.set('status', status);
   if (user) q.set('user', user);
+  if (range !== 6) q.set('range', String(range));
   const s = q.toString();
   return s ? `${BASE}?${s}` : BASE;
 }
 
-export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: { status?: string; user?: string; error?: string; ok?: string } }) {
+export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: { status?: string; user?: string; range?: string; focus?: string; act?: string; error?: string; ok?: string } }) {
   const { supabase, profile } = await requireSession();
   // Secure access: the existing is_admin() function decides. Everyone else gets a normal "not found" page.
   const { data: isAdmin } = await supabase.rpc('is_admin');
@@ -46,30 +50,142 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
   const tz = profile.timezone;
   const status: Filter = (FILTERS as readonly string[]).includes(searchParams.status ?? '') ? (searchParams.status as Filter) : 'pending';
   const userId = isUuid(searchParams.user) ? searchParams.user : undefined;
-  const here = back(status, userId);
+  const range = parseRange(searchParams.range);
+  const focusId = isUuid(searchParams.focus) ? searchParams.focus : undefined;
+  const focusAct = searchParams.act === 'reject' ? 'reject' : 'approve';
+  const here = back(status, userId, range);
 
-  const [reqRes, cfgRes, subsRes] = await Promise.all([
-    supabase.rpc('admin_list_requests', { p_status: status }),
+  const [dashRes, pendingRes, reqRes, cfgRes, subsRes] = await Promise.all([
+    supabase.rpc('admin_subscription_dashboard', { p_months: range }),
+    supabase.rpc('admin_list_requests', { p_status: 'pending' }),
+    status === 'pending' ? Promise.resolve(null) : supabase.rpc('admin_list_requests', { p_status: status }),
     supabase.rpc('subscription_public_config'),
     userId ? supabase.rpc('admin_user_subscriptions', { p_user: userId }) : Promise.resolve({ data: null, error: null })
   ]);
-  const requests = (reqRes.data ?? []) as AdminRequest[];
+  const pendingAll = (pendingRes.data ?? []) as AdminRequest[];
+  const requests = (status === 'pending' ? pendingAll : ((reqRes?.data ?? []) as AdminRequest[]));
+  const stats = parseDashboard(dashRes.data);
+  const statsMissing = dashRes.error?.code === 'PGRST202' || dashRes.error?.code === '42883';
+  // Newest first for the compact panel.
+  const pendingPanel = [...pendingAll].reverse().slice(0, 5);
   const cfg = (cfgRes.data ?? null) as PublicConfig | null;
   const subs = (subsRes.data ?? []) as AdminSub[];
-  const loadError = reqRes.error ?? cfgRes.error ?? subsRes.error ?? null;
+  const loadError = pendingRes.error ?? reqRes?.error ?? cfgRes.error ?? subsRes.error ?? null;
   const now = Date.now();
   const hasActive = subs.some((s) => s.status === 'active' && new Date(s.expires_at).getTime() > now);
 
   return (
     <div className="max-w-5xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl sm:text-3xl">Subscriptions (admin)</h1>
+        <h1 className="text-2xl sm:text-3xl">Admin Dashboard</h1>
         <Link href="/dashboard/billing" className="btn-secondary"><ArrowLeft size={16} aria-hidden="true" /> Back to billing</Link>
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
       {loadError ? <Notice error={subscriptionErrorCopy(loadError)} /> : null}
+      {statsMissing ? <Notice error="The dashboard figures need the migration 20261102_admin_subscription_dashboard.sql. Run it in Supabase; everything else on this page still works." /> : dashRes.error ? <Notice error={subscriptionErrorCopy(dashRes.error)} /> : null}
 
-      <section className="card" aria-label="Prices and payment instructions">
+      {stats ? (
+        <>
+          <p className="-mt-3 text-sm text-muted">Overview of your AgreedLink subscriptions. Figures are live from the database, updated {formatDateTime(stats.generatedAt || new Date().toISOString(), tz)}.</p>
+
+          <section aria-label="Key figures" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-navy"><Users size={18} aria-hidden="true" /> Total users</div>
+              <p className="mt-2 text-3xl font-bold text-navy">{stats.usersTotal.toLocaleString('en-US')}</p>
+              <p className="text-xs text-ok">+{stats.usersThisMonth.toLocaleString('en-US')} this month</p>
+              <div className="mt-3 border-t border-blue-100 pt-3">
+                <p className="text-xs text-muted">Active subscribers</p>
+                <p className="text-2xl font-bold text-navy">{(stats.subscribersPro + stats.subscribersPremium).toLocaleString('en-US')}</p>
+                <p className="text-xs text-muted">Pro: {stats.subscribersPro} | Premium: {stats.subscribersPremium}{stats.subscribersComplimentary ? ` | Complimentary: ${stats.subscribersComplimentary}` : ''}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-green-100 bg-green-50 p-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-navy"><Wallet size={18} aria-hidden="true" /> Total revenue (lifetime)</div>
+              <p className="mt-2 text-3xl font-bold text-navy">{usd(stats.revenueLifetimeMinor)}</p>
+              <p className="mt-3 border-t border-green-100 pt-3 text-xs text-muted">Payments recorded by approving requests or renewing. Complimentary grants are not counted.</p>
+            </div>
+            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-navy"><TrendingUp size={18} aria-hidden="true" /> This month revenue</div>
+              <p className="mt-2 text-3xl font-bold text-navy">{usd(stats.revenueMonthMinor)}</p>
+              <div className="mt-3 border-t border-purple-100 pt-3">
+                <p className="text-xs text-muted">Pending expected</p>
+                <p className="text-2xl font-bold text-warn">{usd(stats.pendingExpectedMinor)}</p>
+                <p className="text-xs text-muted">From {stats.requestsPending} request{stats.requestsPending === 1 ? '' : 's'} waiting for review</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-5">
+              <div className="flex items-center gap-2 text-sm font-medium text-navy"><Bell size={18} aria-hidden="true" /> Requests overview</div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <Link href={`${back('pending', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsPending}</p><p className="text-xs font-medium text-warn">Pending</p></Link>
+                <Link href={`${back('approved', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsApproved}</p><p className="text-xs font-medium text-ok">Approved</p></Link>
+                <Link href={`${back('rejected', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsRejected}</p><p className="text-xs font-medium text-bad">Rejected</p></Link>
+              </div>
+              <div className="mt-3 flex items-center gap-2 border-t border-amber-100 pt-3 text-sm text-navy"><CalendarClock size={16} aria-hidden="true" /> Expiring in 7 days <strong className="ml-auto text-xl text-brand">{stats.expiring7d}</strong></div>
+            </div>
+          </section>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <section className="card lg:col-span-2" aria-label="Revenue trend">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg">Revenue trend</h2>
+                <div className="flex gap-1 text-sm" role="group" aria-label="Chart range">
+                  {([6, 12] as const).map((m) => (
+                    <Link key={m} href={back(status, userId, m)} aria-current={m === range ? 'true' : undefined}
+                      className={`rounded-full px-3 py-1.5 font-medium ${m === range ? 'bg-brand text-white' : 'border border-line bg-white text-navy'}`}>Last {m} months</Link>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-3"><RevenueChart trend={stats.trend} /></div>
+            </section>
+            <section className="card" aria-label="Quick actions">
+              <h2 className="text-lg">Quick actions</h2>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm font-semibold text-navy">
+                <Link href="#manage" className="flex min-h-[72px] flex-col items-start justify-center gap-1 rounded-xl border border-line p-3 hover:bg-brand-soft"><CreditCard size={20} className="text-brand" aria-hidden="true" /> Manage subscriptions</Link>
+                <Link href="#settings" className="flex min-h-[72px] flex-col items-start justify-center gap-1 rounded-xl border border-line p-3 hover:bg-brand-soft"><Settings size={20} className="text-ok" aria-hidden="true" /> Update settings</Link>
+                <Link href={`${back('pending', userId, range)}#requests`} className="flex min-h-[72px] flex-col items-start justify-center gap-1 rounded-xl border border-line p-3 hover:bg-brand-soft"><Bell size={20} className="text-warn" aria-hidden="true" /> Review requests</Link>
+                <a href={`mailto:${cfg?.support_email?.trim() || SITE.email}`} className="flex min-h-[72px] flex-col items-start justify-center gap-1 rounded-xl border border-line p-3 hover:bg-brand-soft"><Mail size={20} className="text-brand" aria-hidden="true" /> Contact support</a>
+              </div>
+            </section>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="card" aria-label="Recent approved payments">
+              <div className="flex items-center justify-between gap-2"><h2 className="text-lg">Recent approved payments</h2><Link href={`${back('approved', userId, range)}#requests`} className="text-sm font-semibold text-brand">View all</Link></div>
+              {stats.recentPayments.length === 0 ? <p className="mt-3 text-sm text-muted">No payments recorded yet.</p> : (
+                <ul className="mt-2 divide-y divide-line">
+                  {stats.recentPayments.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-sm">
+                      <div className="min-w-0"><p className="truncate font-medium text-navy">{p.email}</p><p className="text-xs text-muted">{formatDateTime(p.approvedAt, tz)}{p.status === 'cancelled' ? ' (cancelled)' : ''}</p></div>
+                      <div className="text-right"><p className="font-semibold text-navy">{usd(p.amountMinor)}</p><p className="text-xs text-muted">{planLabel(p.plan)}, {p.months} month{p.months === 1 ? '' : 's'}</p></div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section className="card" aria-label="Pending subscription requests">
+              <div className="flex items-center justify-between gap-2"><h2 className="text-lg">Pending subscription requests</h2><Link href={`${back('pending', userId, range)}#requests`} className="text-sm font-semibold text-brand">View all</Link></div>
+              {pendingPanel.length === 0 ? <p className="mt-3 text-sm text-muted">Nothing is waiting for review.</p> : (
+                <ul className="mt-2 divide-y divide-line">
+                  {pendingPanel.map((r) => (
+                    <li key={r.id} className="space-y-2 py-3 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <div className="min-w-0"><p className="truncate font-medium text-navy">{r.email}</p><p className="text-xs text-muted">{formatDateTime(r.created_at, tz)}</p></div>
+                        <div className="text-right"><p className="font-semibold text-navy">{r.expected_amount_minor != null ? usd(r.expected_amount_minor) : '-'}</p><p className="text-xs text-muted">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}</p></div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Link href={`${BASE}?focus=${r.id}&act=approve#req-${r.id}`} className="inline-flex min-h-[40px] items-center rounded-lg bg-ok px-4 text-xs font-semibold text-white">Approve</Link>
+                        <Link href={`${BASE}?focus=${r.id}&act=reject#req-${r.id}`} className="inline-flex min-h-[40px] items-center rounded-lg border border-bad/30 bg-bad-bg px-4 text-xs font-semibold text-bad">Reject</Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        </>
+      ) : null}
+
+      <section id="settings" className="card scroll-mt-4" aria-label="Prices and payment instructions">
         <h2 className="text-lg">Prices and payment instructions</h2>
         <p className="hint">Customers see these on their billing page. New prices apply to new requests only; requests already sent keep their price.</p>
         <form action={updateConfigAction} className="mt-4 space-y-4">
@@ -104,17 +220,17 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
         </form>
       </section>
 
-      <section className="space-y-3" aria-label="Requests">
+      <section id="requests" className="scroll-mt-4 space-y-3" aria-label="Requests">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="mr-2 text-lg">Requests</h2>
           {FILTERS.map((f) => (
-            <Link key={f} href={back(f, userId)} aria-current={f === status ? 'page' : undefined}
+            <Link key={f} href={`${back(f, userId, range)}#requests`} aria-current={f === status ? 'page' : undefined}
               className={`rounded-full px-3 py-1.5 text-sm font-medium capitalize ${f === status ? 'bg-brand text-white' : 'border border-line bg-white text-navy'}`}>{f}</Link>
           ))}
         </div>
         {requests.length === 0 ? <p className="card text-sm text-muted">No {status === 'all' ? '' : `${status} `}requests.</p> : null}
         {requests.map((r) => (
-          <article key={r.id} className="card space-y-3 text-sm">
+          <article key={r.id} id={`req-${r.id}`} className="card scroll-mt-4 space-y-3 text-sm">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-navy">{r.name || 'Unnamed'} <span className="font-normal text-muted">{r.email}</span></p>
@@ -133,7 +249,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
 
             {r.status === 'pending' ? (
               <div className="grid gap-3 lg:grid-cols-2">
-                <details className="rounded-xl border border-line p-3">
+                <details className="rounded-xl border border-line p-3" open={focusId === r.id && focusAct === 'approve'}>
                   <summary className="cursor-pointer font-semibold text-navy">Approve</summary>
                   <form action={approveRequestAction} className="mt-3 space-y-3">
                     <input type="hidden" name="back" value={here} />
@@ -148,7 +264,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                     <SubmitButton pendingText="Approving..." className="w-full">Approve request</SubmitButton>
                   </form>
                 </details>
-                <details className="rounded-xl border border-line p-3">
+                <details className="rounded-xl border border-line p-3" open={focusId === r.id && focusAct === 'reject'}>
                   <summary className="cursor-pointer font-semibold text-bad">Reject</summary>
                   <form action={rejectRequestAction} className="mt-3 space-y-3">
                     <input type="hidden" name="back" value={here} />
@@ -159,12 +275,12 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                 </details>
               </div>
             ) : null}
-            <Link href={`${back(status, r.user_id)}#manage`} className="inline-block font-semibold text-brand">Manage this customer&apos;s subscription</Link>
+            <Link href={`${back(status, r.user_id, range)}#manage`} className="inline-block font-semibold text-brand">Manage this customer&apos;s subscription</Link>
           </article>
         ))}
       </section>
 
-      <section id="manage" className="card space-y-4" aria-label="Manage a customer subscription">
+      <section id="manage" className="card scroll-mt-4 space-y-4" aria-label="Manage a customer subscription">
         <h2 className="text-lg">Manage a customer subscription</h2>
         <form method="get" action={BASE} className="flex flex-wrap items-end gap-2">
           {status !== 'pending' ? <input type="hidden" name="status" value={status} /> : null}
