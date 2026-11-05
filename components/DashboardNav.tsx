@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, UserRound, Users, Inbox } from 'lucide-react';
+import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, TrendingUp, UserRound, Users, Inbox } from 'lucide-react';
 
 type Item = { href: string; label: string; short: string; Icon: typeof Bell; bottom: boolean; badge?: boolean };
 
@@ -9,6 +9,7 @@ const items: Item[] = [
   { href: '/dashboard', label: 'Dashboard', short: 'Home', Icon: LayoutDashboard, bottom: true },
   { href: '/dashboard/agreements', label: 'Agreements', short: 'Agreements', Icon: FileText, bottom: true },
   { href: '/dashboard/templates', label: 'Templates', short: 'Templates', Icon: LayoutTemplate, bottom: false },
+  { href: '/dashboard/reports', label: 'Reports', short: 'Reports', Icon: TrendingUp, bottom: false },
   { href: '/dashboard/clients', label: 'Clients', short: 'Clients', Icon: Users, bottom: false },
   { href: '/dashboard/notifications', label: 'Notifications', short: 'Alerts', Icon: Bell, bottom: true, badge: true },
   { href: '/dashboard/billing', label: 'Billing', short: 'Billing', Icon: CreditCard, bottom: false },
