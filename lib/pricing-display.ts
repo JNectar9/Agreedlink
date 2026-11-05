@@ -47,5 +47,7 @@ export const ACTIVATION_STEPS = [
   'An administrator checks the payment and activates your plan. Nothing changes until they approve it.'
 ];
 
-export const ACTIVATION_NOTE =
-  'Subscriptions are activated by an administrator after the payment is 
+export const ACTIVATION_NOTE = [
+  'Subscriptions are activated by an administrator after the payment is verified.',
+  'Automatic online payments are not available yet, and prices are in US dollars only.'
+].join(' ');
