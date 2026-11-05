@@ -22,6 +22,9 @@ test('landing page shows the reference headline and calls to action', async ({ p
   await expect(page.getByRole('link', { name: /Get Started Free/ }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /See How It Works/ })).toBeVisible();
   await expect(page.getByText(/join thousands/i)).toHaveCount(0);
+  await expect(page.getByText(/in US dollars/i)).toHaveCount(0);
+  await expect(page.getByText(/coming soon/i)).toHaveCount(0);
+  await expect(page.getByText(/bank transfer in Naira/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible();
 });
 
