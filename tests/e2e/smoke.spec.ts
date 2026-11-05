@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 // needs a configured test project and is listed as remaining work in docs/REMAINING.md.
 test('landing page shows the promise and the JNectar credit', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Make Agreements');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('I never said that.');
   await expect(page.getByText('Created by JNectar').first()).toBeVisible();
 });
 
