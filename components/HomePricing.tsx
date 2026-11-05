@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Building2, CheckCircle2, Clock, CreditCard } from 'lucide-react';
+import { Building2, CheckCircle2, CreditCard } from 'lucide-react';
 import { PLAN_CONFIG, PLAN_ORDER, type PlanId } from '@/lib/plans';
 import { nairaShort, type PublicPricing } from '@/lib/pricing-format';
 import { usdShort } from '@/lib/subscriptions';
@@ -23,9 +23,9 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
         {PLAN_ORDER.map((id) => {
           const plan = PLAN_CONFIG[id];
           const featured = id === 'pro';
+          // Only features that work today are listed. Planned features are not advertised on the pricing cards.
           const live = plan.features.filter((f) => f.live);
-          const soon = plan.features.filter((f) => !f.live);
-          const naira = ngnMinor && id !== 'free' ? (id === 'pro' ? ngnMinor.pro : ngnMinor.premium) : null;
+          const naira = id === 'free' ? null : id === 'pro' ? ngnMinor.pro : ngnMinor.premium;
           return (
             <article
               key={id}
@@ -47,9 +47,7 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
               <p className="mt-1 min-h-[2.5rem] text-xs text-muted">
                 {id === 'free'
                   ? 'No payment needed.'
-                  : naira !== null
-                    ? `${usdShort(usd(id))}/month USD reference price. Card checkout is charged in naira.`
-                    : 'Priced in US dollars. Paid by bank transfer and activated by an administrator.'}
+                  : `${usdShort(usd(id))}/month USD reference price. ${paystackEnabled ? 'Card checkout is charged in naira.' : 'Pay by bank transfer in naira.'}`}
               </p>
 
               <ul className="mt-4 space-y-2.5 text-sm text-ink">
@@ -60,18 +58,6 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
                   </li>
                 ))}
               </ul>
-
-              {soon.length > 0 ? (
-                <details className="group mt-4 rounded-xl bg-page px-3 py-2 text-sm">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 py-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                    <Clock size={14} aria-hidden="true" /> Coming soon ({soon.length})
-                  </summary>
-                  <ul className="mt-2 space-y-1.5 pb-1 text-muted">
-                    {soon.map((f) => (<li key={f.text}>{f.text}</li>))}
-                  </ul>
-                  <p className="pb-1 text-xs text-muted">Planned, not available yet.</p>
-                </details>
-              ) : null}
 
               <div className="mt-6 pt-1">
                 {id === 'free' ? (
@@ -103,7 +89,7 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
         <div className="card">
           <h3 className="flex items-center gap-2 text-lg text-navy"><Building2 size={18} className="text-brand" aria-hidden="true" /> Manual bank transfer</h3>
           <p className="mt-2 text-sm text-ink">
-            Pay by bank transfer in US dollars, then send your payment reference from the Billing page. An administrator verifies the payment and activates your plan. Nothing changes until it is approved.
+            Pay by bank transfer in Naira to the Zenith account shown on the Billing page. Pro is {nairaShort(ngnMinor.pro)}, Premium is {nairaShort(ngnMinor.premium)}. Send your payment reference. Admin verifies and activates your plan. Nothing changes until it is approved.
           </p>
           <p className="mt-2 text-xs text-muted">Payment instructions are shown to signed-in customers on the Billing page.</p>
         </div>
