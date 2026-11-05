@@ -1,14 +1,17 @@
 // Prices shown on the public homepage. Pure functions, so they can be unit tested.
-// USD prices are the reference prices (minor units = cents). Naira prices apply to Paystack card checkout only,
-// so they are returned only when an administrator has switched Paystack on and valid naira prices exist.
+// USD prices are the reference prices (minor units = cents). Naira prices (kobo) are what customers actually pay,
+// by card through Paystack or by manual bank transfer. They come from the configured prices, with the agreed
+// 14,000 and 36,000 naira as the fallback. Whether card checkout is switched on is tracked separately.
 
 export type PublicPricing = {
   usdMinor: { pro: number; premium: number };
-  ngnMinor: { pro: number; premium: number } | null;
+  ngnMinor: { pro: number; premium: number };
+  /** True only while an administrator has Paystack switched on and valid naira prices exist. */
   paystackEnabled: boolean;
 };
 
 export const DEFAULT_USD_MINOR = { pro: 900, premium: 2400 } as const;
+export const DEFAULT_NGN_MINOR = { pro: 1400000, premium: 3600000 } as const;
 
 const isPositiveInt = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v > 0;
 
@@ -31,7 +34,10 @@ export function pricingFromRows(
       pro: isPositiveInt(usdPro) ? usdPro : DEFAULT_USD_MINOR.pro,
       premium: isPositiveInt(usdPremium) ? usdPremium : DEFAULT_USD_MINOR.premium
     },
-    ngnMinor: enabled ? { pro: ngnPro as number, premium: ngnPremium as number } : null,
+    ngnMinor: {
+      pro: isPositiveInt(ngnPro) ? ngnPro : DEFAULT_NGN_MINOR.pro,
+      premium: isPositiveInt(ngnPremium) ? ngnPremium : DEFAULT_NGN_MINOR.premium
+    },
     paystackEnabled: enabled
   };
 }
