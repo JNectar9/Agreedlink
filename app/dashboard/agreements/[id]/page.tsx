@@ -16,6 +16,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { ShareButtons } from '@/components/ShareButtons';
+import { AgreementTools } from '@/components/AgreementTools';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import {
   cancelAgreementAction, completeAgreementAction, proposeChangeAction, regenerateLinkAction, revokeLinkAction, withdrawChangeAction
@@ -72,6 +73,8 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         <StatusBadge status={shown} />
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
+      <AgreementTools agreementId={a.id} />
+      
 
       <section className="card" aria-labelledby="terms-h">
         <h2 id="terms-h" className="text-lg">Current terms (version {a.current_version})</h2>
