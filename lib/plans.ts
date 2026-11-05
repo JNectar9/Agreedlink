@@ -18,7 +18,7 @@ export const PLAN_CONFIG: Record<PlanId, PlanConfig> = {
       { text: 'Up to 3 active agreements at one time', live: true },
       { text: 'Basic agreement tracking', live: true },
       { text: 'Standard support', live: true },
-      { text: '1 saved template', live: false }
+      { text: '1 saved template', live: true }
     ]
   },
   pro: {
@@ -31,7 +31,7 @@ export const PLAN_CONFIG: Record<PlanId, PlanConfig> = {
       { text: 'Up to 50 active agreements at one time', live: true },
       { text: 'Customer approval links and approval workflow', live: true },
       { text: 'Agreement history and tracking', live: true },
-      { text: '10 saved templates', live: false },
+      { text: '10 saved templates', live: true },
       { text: 'Attachments up to 10 MB per file', live: false },
       { text: 'PDF export', live: false },
       { text: 'Client invitations by email', live: false }
