@@ -1,35 +1,102 @@
 import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
-import { PricingCards } from '@/components/PricingCards';
-import { Faq } from '@/components/Faq';
-import { PRICING_CURRENCIES } from '@/lib/plans';
-import { currencySymbol } from '@/lib/money';
+import { PricingPlans } from '@/components/PricingPlans';
+import { isSupabaseConfigured } from '@/lib/env';
+import { createClient } from '@/lib/supabase/server';
+import { ACTIVATION_NOTE, ACTIVATION_STEPS } from '@/lib/pricing-display';
+import { SITE } from '@/lib/site';
 
-export const metadata = { title: 'Pricing' };
+export const metadata = {
+  title: 'Pricing',
+  description: 'AgreedLink is free to start. Pro is $9 per month and Premium is $24 per month, activated by an administrator after payment is verified.'
+};
 
-export default function PricingPage({ searchParams }: { searchParams: { currency?: string } }) {
-  const asked = (searchParams.currency ?? '').trim().toUpperCase();
-  const currency = PRICING_CURRENCIES.includes(asked) ? asked : 'USD';
+/** Signed-in visitors see the payment instructions; administrators also see the price control. Everyone else sees neither. */
+async function viewer(): Promise<{ signedIn: boolean; isAdmin: boolean; instructions: string; supportEmail: string }> {
+  const anonymous = { signedIn: false, isAdmin: false, instructions: '', supportEmail: SITE.email };
+  if (!isSupabaseConfigured()) return anonymous;
+  try {
+    const supabase = createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    if (!user) return anonymous;
+    const [adminRes, cfgRes] = await Promise.all([supabase.rpc('is_admin'), supabase.rpc('subscription_public_config')]);
+    const cfg = (cfgRes.data ?? null) as { payment_instructions?: string; support_email?: string } | null;
+    return {
+      signedIn: true,
+      isAdmin: adminRes.data === true,
+      instructions: cfg?.payment_instructions?.trim() ?? '',
+      supportEmail: cfg?.support_email?.trim() || SITE.email
+    };
+  } catch {
+    return anonymous;
+  }
+}
+
+const QUESTIONS = [
+  { q: 'How do I upgrade to Pro or Premium?', a: 'Sign in, open Billing, pay using the payment instructions, and send a payment request with your payment reference. An administrator verifies the payment and activates your plan.' },
+  { q: 'Is my plan activated straight away?', a: 'No. Activation is manual. Your plan changes only after an administrator approves your request, and you can follow its status on your Billing page.' },
+  { q: 'Can I pay by card or have it renew automatically?', a: 'Not yet. Automatic online payments are not available. Each payment is made manually, and you send a new request when you want to renew.' },
+  { q: 'Which currency are prices in?', a: 'US dollars. Pro is $9 per month and Premium is $24 per month. Local-currency pricing is not available yet, and no conversion is applied.' },
+  { q: 'What happens when my paid plan ends?', a: 'You return to Free. Your agreements and records are never deleted. If you have more active agreements than Free allows, you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.' },
+  { q: 'What does coming soon mean?', a: 'Those features are planned but not built yet. They are shown separately so you can see what is available today and what is not.' }
+];
+
+export default async function PricingPage() {
+  const v = await viewer();
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 py-12">
-        <h1 className="text-3xl">Simple pricing</h1>
-        <p className="mt-3 max-w-2xl text-muted">Start free. Pro is $9 per month and Premium is $24 per month. Naira amounts are approximate and depend on the exchange rate. Online payment through Paystack is planned but not connected yet, so nobody can be charged today, and features marked coming soon are not built yet.</p>
-        <form method="get" className="mt-6 flex flex-wrap items-end gap-2" aria-label="Choose the currency for displayed prices">
-          <div className="min-w-0">
-            <label htmlFor="currency" className="label">Show prices in</label>
-            <select id="currency" name="currency" defaultValue={currency} className="input">
-              {PRICING_CURRENCIES.map((c) => (<option key={c} value={c}>{c} ({currencySymbol(c)})</option>))}
-            </select>
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+        <header className="max-w-2xl">
+          <h1 className="text-3xl sm:text-4xl">Simple pricing</h1>
+          <p className="mt-3 text-muted">Start free. Upgrade to <strong className="text-navy">Pro for $9 per month</strong> or <strong className="text-navy">Premium for $24 per month</strong> when you need more active agreements. Prices are in US dollars.</p>
+          {v.isAdmin ? (
+            <Link href="/dashboard/admin/subscriptions#settings" className="btn-secondary mt-4"><ShieldCheck size={16} aria-hidden="true" /> Update prices (admin)</Link>
+          ) : null}
+        </header>
+
+        <div className="mt-8"><PricingPlans mode="public" /></div>
+
+        <section aria-labelledby="how-paid-plans-work" className="mt-12 grid gap-4 lg:grid-cols-2">
+          <div className="card">
+            <h2 id="how-paid-plans-work" className="text-xl">How paid plans work</h2>
+            <p className="mt-2 text-sm text-ink">{ACTIVATION_NOTE}</p>
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-ink">
+              {ACTIVATION_STEPS.map((s) => <li key={s}>{s}</li>)}
+            </ol>
+            <Link href="/dashboard/billing#request" className="btn-primary mt-5 w-full sm:w-auto">Go to Billing</Link>
           </div>
-          <button className="btn-secondary shrink-0">Update prices</button>
-        </form>
-        <div className="mt-6"><PricingCards currency={currency} /></div>
-        <h2 className="mt-14 text-2xl">Questions</h2>
-        <div className="mt-4"><Faq limit={7} /></div>
-        <p className="mt-6 text-sm text-muted">More questions? <Link href="/contact" className="font-semibold text-brand">Contact us</Link>.</p>
+          <div className="card">
+            <h2 className="text-xl">Payment instructions</h2>
+            {v.signedIn ? (
+              v.instructions ? (
+                <p className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{v.instructions}</p>
+              ) : (
+                <p className="mt-3 rounded-xl bg-page p-4 text-sm text-muted">Payment instructions have not been added yet. Contact <a href={`mailto:${v.supportEmail}`} className="font-semibold text-brand">{v.supportEmail}</a> and we will send them to you.</p>
+              )
+            ) : (
+              <p className="mt-3 text-sm text-muted">Payment instructions are shown to signed-in customers on the Billing page. <Link href="/signin?next=/dashboard/billing" className="font-semibold text-brand">Log in</Link> or <Link href="/signup" className="font-semibold text-brand">create a free account</Link> to see them.</p>
+            )}
+            <p className="mt-4 text-sm text-muted">Questions about paying? <Link href="/contact" className="font-semibold text-brand">Contact us</Link>.</p>
+          </div>
+        </section>
+
+        <section aria-labelledby="pricing-questions" className="mt-12">
+          <h2 id="pricing-questions" className="text-2xl">Questions</h2>
+          <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-white">
+            {QUESTIONS.map((item) => (
+              <details key={item.q} className="group p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-navy sm:text-base">{item.q}</summary>
+                <p className="mt-2 text-sm text-ink">{item.a}</p>
+              </details>
+            ))}
+          </div>
+          <p className="mt-6 text-sm text-muted">More questions? <Link href="/contact" className="font-semibold text-brand">Contact us</Link>.</p>
+        </section>
       </main>
       <SiteFooter />
     </>
