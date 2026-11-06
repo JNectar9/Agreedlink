@@ -3,7 +3,8 @@ import { Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
 import { PLAN_CONFIG } from '@/lib/plans';
 import { PricingPlans } from '@/components/PricingPlans';
-import { ACTIVATION_NOTE, ACTIVATION_STEPS } from '@/lib/pricing-display';
+import { ACTIVATION_STEPS } from '@/lib/pricing-display';
+import { nairaShort, ngnPricesFromConfig } from '@/lib/pricing-format';
 import { SITE, buildWhatsAppLink, isValidWhatsAppNumber, toWhatsAppDigits } from '@/lib/site';
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
@@ -52,6 +53,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
   const setupError = subRes.error ?? cfgRes.error ?? null;
   const ready = Boolean(sub && cfg && !setupError);
   const showCard = ready && pcfg?.paystack_enabled === true && Boolean(pcfg.ngn_prices);
+  const ngn = ngnPricesFromConfig(cfgRes.data);
 
   const tz = profile.timezone;
   const active = agreements.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
@@ -93,7 +95,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stateCls}`}>{stateLabel}</span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">{usdShort(price(planId))}/month</dd></div>
+          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">
+              {planId === 'free' ? '$0/month' : <>{nairaShort(planId === 'pro' ? ngn.pro : ngn.premium)}/month <span className="font-normal text-muted">({usdShort(price(planId))} reference)</span></>}
+            </dd></div>
           <div>
             <dt className="text-muted">{sub?.current ? 'Paid access until' : 'Access until'}</dt>
             <dd className="font-semibold text-navy">
@@ -124,12 +128,14 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       <section aria-label="Plans" className="space-y-3">
         <div>
           <h2 className="text-lg">Plans</h2>
-          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} per month and Premium is {usdShort(price('premium'))} per month, in US dollars. Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
+          <p className="text-sm text-muted">Free is $0. Pro is {nairaShort(ngn.pro)} per month and Premium is {nairaShort(ngn.premium)} per month, with USD reference prices of {usdShort(price('pro'))} and {usdShort(price('premium'))}. Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
         </div>
         <PricingPlans
           mode="billing"
           currentPlan={planId}
           prices={{ free: price('free'), pro: price('pro'), premium: price('premium') }}
+          ngnPrices={ngn}
+          cardEnabled={showCard}
           limits={{ free: cfg?.limits?.free?.active_agreements, pro: cfg?.limits?.pro?.active_agreements, premium: cfg?.limits?.premium?.active_agreements }}
         />
         <p className="text-xs text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
@@ -148,7 +154,15 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       <section id="request" aria-label="Pay and request a plan" className="grid gap-4 lg:grid-cols-2">
         <div className="card space-y-3">
           <h2 className="text-lg">How to pay</h2>
-          <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">{ACTIVATION_NOTE}</p>
+          <div className="space-y-2 rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">
+            <p className="font-semibold">{showCard ? 'You have 2 ways to pay:' : 'How to pay:'}</p>
+            {showCard ? (
+              <p><strong>A) Pay by card (Paystack).</strong> Your plan activates automatically once Paystack confirms the payment. Charged in naira: Pro {nairaShort(ngn.pro)}, Premium {nairaShort(ngn.premium)}.</p>
+            ) : null}
+            <p>
+              <strong>{showCard ? 'B) ' : ''}Pay by bank transfer in naira</strong> to the Zenith account shown on this page. Pro is {nairaShort(ngn.pro)}, Premium is {nairaShort(ngn.premium)}. Send your payment reference. Admin verifies and activates your plan. Nothing changes until it is approved.
+            </p>
+          </div>
           {instructions ? (
             <p className="whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{instructions}</p>
           ) : (
@@ -175,8 +189,8 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
             <div>
               <label htmlFor="plan" className="label">Plan</label>
               <select id="plan" name="plan" defaultValue={preselect} className="input">
-                <option value="pro">Pro ({usdShort(price('pro'))}/month)</option>
-                <option value="premium">Premium ({usdShort(price('premium'))}/month)</option>
+                <option value="pro">Pro ({nairaShort(ngn.pro)}/month)</option>
+                <option value="premium">Premium ({nairaShort(ngn.premium)}/month)</option>
               </select>
             </div>
             <div>
@@ -184,7 +198,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <select id="months" name="months" defaultValue="1" className="input">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} month{m === 1 ? '' : 's'}</option>)}
               </select>
-              <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {usd(price('pro') * 3)}.</p>
+              <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {nairaShort(ngn.pro * 3)}.</p>
             </div>
             <div>
               <label htmlFor="payment_reference" className="label">Payment reference or transfer ID</label>
