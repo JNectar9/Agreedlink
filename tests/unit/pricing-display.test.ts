@@ -66,7 +66,10 @@ describe('payment wording', () => {
   const sources: [string, string][] = [['pricing page', pricing], ['billing page', billing], ['plans component', plansUi], ['display data', display]];
   it('has no misleading "cannot be charged" warnings or Paystack / exchange-rate claims', () => {
     for (const [name, text] of sources) {
-      for (const bad of [/nobody can be charged/i, /cannot be charged/i, /not connected yet/i, /paystack/i, /approximate/i, /exchange rate/i, /≈/]) {
+      // Card payment is live on the Billing page; it must still not appear on the other pages until they are updated.
+      const banned = [/nobody can be charged/i, /cannot be charged/i, /not connected yet/i, /approximate/i, /exchange rate/i, /≈/];
+      if (name !== 'billing page') banned.push(/paystack/i);
+      for (const bad of banned) {
         expect(bad.test(text), `${name} matches ${bad}`).toBe(false);
       }
     }
@@ -76,7 +79,9 @@ describe('payment wording', () => {
     expect(ACTIVATION_NOTE).toContain('Automatic online payments are not available yet');
     expect(ACTIVATION_STEPS.join(' ')).toContain('administrator');
     expect(pricing).toContain('ACTIVATION_NOTE');
-    expect(billing).toContain('ACTIVATION_NOTE');
+    // The Billing page now explains both ways to pay itself, so it no longer shows the manual-only note.
+    expect(billing).not.toContain('ACTIVATION_NOTE');
+    expect(billing).toContain('ACTIVATION_STEPS');
   });
   it('makes no claim that automatic payments or naira pricing exist', () => {
     expect(pricing).not.toMatch(/auto-?renew(s|al)? (is|are) (on|enabled|available)/i);
