@@ -3,6 +3,7 @@ import { CheckCircle2, Clock } from 'lucide-react';
 import { PLAN_CONFIG } from '@/lib/plans';
 import { PLAN_ORDER, PLAN_TAGLINE, availableFeatures, comingSoonFeatures, type PlanId } from '@/lib/pricing-display';
 import { usdShort } from '@/lib/subscriptions';
+import { nairaShort } from '@/lib/pricing-format';
 
 type Props = {
   /** 'public' is the marketing page. 'billing' is the signed-in page, where buttons start a payment request. */
@@ -12,15 +13,20 @@ type Props = {
   /** Active-agreement limits from the database, when known. */
   limits?: Partial<Record<PlanId, number>>;
   currentPlan?: PlanId;
+  /** Billing page only: naira prices in kobo. When given, naira is the headline and the dollar price is a reference. */
+  ngnPrices?: { pro: number; premium: number };
+  /** Whether card checkout is switched on. Only changes the caption under the price. */
+  cardEnabled?: boolean;
 };
 
 /** The three plans. Available features and coming-soon features are shown in two clearly separate groups. */
-export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
+export function PricingPlans({ mode, prices, limits, currentPlan, ngnPrices, cardEnabled }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {PLAN_ORDER.map((id) => {
         const plan = PLAN_CONFIG[id];
         const cents = prices?.[id] ?? plan.usdPerMonth * 100;
+        const naira = ngnPrices && id !== 'free' ? (id === 'pro' ? ngnPrices.pro : ngnPrices.premium) : null;
         const available = availableFeatures(id, limits?.[id]);
         const soon = comingSoonFeatures(id);
         const featured = id === 'pro';
@@ -33,10 +39,10 @@ export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
             </div>
             <p className="mt-1 text-sm text-muted">{PLAN_TAGLINE[id]}</p>
             <p className="mt-4 text-4xl font-bold text-navy">
-              {usdShort(cents)}
+              {naira !== null ? nairaShort(naira) : usdShort(cents)}
               <span className="text-base font-medium text-muted">{id === 'free' ? ' forever' : '/month'}</span>
             </p>
-            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : 'US dollars. Paid manually, activated by an administrator.'}</p>
+            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : naira !== null ? `${usdShort(cents)}/month USD reference price. ${cardEnabled ? 'Card checkout is charged in naira.' : 'Pay by bank transfer in naira.'}` : 'US dollars. Paid manually, activated by an administrator.'}</p>
 
             <div className="mt-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-ok">Available now</p>
