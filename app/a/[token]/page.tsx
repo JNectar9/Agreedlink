@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import { LocalTime } from '@/components/LocalTime';
 import { OpenBeacon } from '@/components/OpenBeacon';
+import { CustomerFiles, type CustomerFile } from '@/components/CustomerFiles';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -89,6 +90,16 @@ export default async function CustomerPage({ params, searchParams }: { params: {
   }
 
   const t = view.terms;
+
+  // Files the freelancer chose to show. The database returns only ready, customer-visible files for THIS link's agreement.
+  // If anything goes wrong the page simply shows no files; it never falls back to showing everything.
+  type FileRow = { id: string; file_name: string; mime_type: string; size_bytes: number | string; created_at: string };
+  const filesRes = await createAdminClient().rpc('customer_files', { p_token_hash: hashToken(token) });
+  const files: CustomerFile[] = filesRes.error || !Array.isArray(filesRes.data) ? [] : (filesRes.data as FileRow[]).map((f) => ({
+    id: f.id, fileName: f.file_name, mimeType: f.mime_type, sizeBytes: Number(f.size_bytes), createdAt: f.created_at,
+    viewUrl: `/a/${token}/files/${f.id}?inline=1`, downloadUrl: `/a/${token}/files/${f.id}`
+  }));
+
   let viewerEmail: string | null = null;
   if (isSupabaseConfigured()) {
     const { data: { user } } = await createClient().auth.getUser();
@@ -135,6 +146,10 @@ export default async function CustomerPage({ params, searchParams }: { params: {
           {t.payment_terms_text ? <div className="sm:col-span-2"><dt className="font-medium text-navy">Payment terms (information only)</dt><dd className="whitespace-pre-wrap">{t.payment_terms_text}</dd></div> : null}
         </dl>
       </div>
+
+      {preview && filesRes.error ? <Notice error={`Files could not be loaded: ${filesRes.error.message}`} /> : null}
+      {preview && !filesRes.error && files.length === 0 ? <Notice info="No customer-visible files on this agreement. Private or unfinished files are not shown." /> : null}
+      <CustomerFiles files={files} />
 
       {pendingAgreement ? (
         <form action={decideAgreementAction.bind(null, token)} className="card space-y-4">
