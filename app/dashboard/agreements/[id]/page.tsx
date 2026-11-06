@@ -1,0 +1,202 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ArrowLeft, ExternalLink, History, MessageSquare, RefreshCw, ShieldOff } from 'lucide-react';
+import { requireSession, displayStatus, OPEN_CHANGE, type AgreementRow, type ChangeRow } from '@/lib/data';
+import { customerUrl } from '@/lib/links';
+import { compareTerms, priceDifference, pricingLabel, type Terms } from '@/lib/terms';
+import { formatMinorSafe } from '@/lib/money';
+import { randomUUID } from 'node:crypto';
+import { describeIdentity } from '@/lib/identity';
+import { buildChangeShareMessage } from '@/lib/share-change';
+import { ChangeCalculator } from '@/components/ChangeCalculator';
+import { ChangeHistory } from '@/components/ChangeHistory';
+import { formatDateTime, formatPlainDate } from '@/lib/time';
+import { en } from '@/messages/en';
+import { StatusBadge } from '@/components/StatusBadge';
+import { Notice } from '@/components/Notice';
+import { SubmitButton } from '@/components/SubmitButton';
+import { ShareButtons } from '@/components/ShareButtons';
+import { AgreementTools } from '@/components/AgreementTools';
+import { ShareReview } from '@/components/ShareReview';
+import { ComparisonTable } from '@/components/ComparisonTable';
+import {
+  cancelAgreementAction, completeAgreementAction, proposeChangeAction, regenerateLinkAction, revokeLinkAction, withdrawChangeAction
+} from '../../actions';
+
+export const dynamic = 'force-dynamic';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type EventRow = { id: number; event_type: string; actor_name: string | null; source_label: string; message: string | null; version_number: number | null; created_at: string };
+type MessageRow = { id: string; body: string; author_name: string; created_at: string };
+
+export default async function AgreementPage({ params, searchParams }: { params: { id: string }; searchParams: { error?: string; ok?: string } }) {
+  if (!UUID.test(params.id)) notFound();
+  const { supabase, profile } = await requireSession();
+  const { data: row } = await supabase.from('agreements').select('*').eq('id', params.id).maybeSingle();
+  if (!row) notFound();
+  const a = row as AgreementRow;
+
+  const [versionsRes, changesRes, eventsRes, linkRes, approvalsRes, messagesRes] = await Promise.all([
+    supabase.from('agreement_versions').select('version_number, terms, change_request_id').eq('agreement_id', a.id),
+    supabase.from('change_requests').select('*').eq('agreement_id', a.id).order('created_at', { ascending: false }),
+    supabase.from('agreement_events').select('*').eq('agreement_id', a.id).order('id', { ascending: false }),
+    supabase.from('share_links').select('*').eq('agreement_id', a.id).is('revoked_at', null).maybeSingle(),
+    supabase.from('version_approvals').select('*').eq('agreement_id', a.id),
+    supabase.from('customer_messages').select('*').eq('agreement_id', a.id).order('created_at', { ascending: false })
+  ]);
+
+  const current = (versionsRes.data ?? []).find((v) => v.version_number === a.current_version)?.terms as Terms | undefined;
+  if (!current) notFound();
+  const original = ((versionsRes.data ?? []).find((v) => v.version_number === 1)?.terms ?? current) as Terms;
+  const versionByChange: Record<string, number> = {};
+  for (const v of versionsRes.data ?? []) if (v.change_request_id) versionByChange[v.change_request_id as string] = v.version_number as number;
+  const changes = (changesRes.data ?? []) as ChangeRow[];
+  const open = changes.find((c) => OPEN_CHANGE.includes(c.status));
+  const events = (eventsRes.data ?? []) as EventRow[];
+  const messages = (messagesRes.data ?? []) as MessageRow[];
+  const approval = (approvalsRes.data ?? []).find((p) => p.version_number === a.current_version);
+  const link = linkRes.data;
+  const built = link ? customerUrl(link.token_ciphertext) : null;
+  const tz = profile.timezone;
+  const shown = displayStatus(a.status, Boolean(open));
+  const creatorName = profile.business_name || profile.display_name || 'I';
+  const money = (m: number) => formatMinorSafe(m, a.currency);
+
+  return (
+    <div className="space-y-6">
+      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm font-medium text-brand"><ArrowLeft size={16} aria-hidden="true" /> All agreements</Link>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl">{a.project_name}</h1>
+          <p className="text-muted">For {a.client_name}</p>
+          <p className="text-xs text-muted">Created {formatDateTime(a.created_at, tz)}</p>
+        </div>
+        <StatusBadge status={shown} />
+      </div>
+      <Notice error={searchParams.error} ok={searchParams.ok} />
+      <AgreementTools agreementId={a.id} />
+
+      <section className="card" aria-labelledby="terms-h">
+        <h2 id="terms-h" className="text-lg">Current terms (version {a.current_version})</h2>
+        <p className="mt-1 text-sm text-muted">
+          {approval
+            ? `Approved by ${approval.approved_by_name} on ${formatDateTime(approval.approved_at, tz)}. ${describeIdentity(approval).label}: ${describeIdentity(approval).detail}`
+            : a.status === 'awaiting_approval' ? 'Waiting for the customer to approve this version.' : 'This version has no recorded approval.'}
+        </p>
+        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+          <div><dt className="font-medium text-navy">Total price</dt><dd>{money(a.current_amount_minor)}{a.current_amount_minor !== a.original_amount_minor ? ` (originally ${money(a.original_amount_minor)})` : ''}</dd></div>
+          <div><dt className="font-medium text-navy">Delivery date</dt><dd>{formatPlainDate(a.current_delivery_date)}</dd></div>
+          <div><dt className="font-medium text-navy">Included revisions</dt><dd>{current.included_revisions}{current.revision_definition ? ` - ${current.revision_definition}` : ''}</dd></div>
+          <div><dt className="font-medium text-navy">Extra work</dt><dd>{pricingLabel(current)}</dd></div>
+          <div className="sm:col-span-2"><dt className="font-medium text-navy">Description</dt><dd className="whitespace-pre-wrap">{current.description}</dd></div>
+          <div className="sm:col-span-2"><dt className="font-medium text-navy">Deliverables</dt><dd className="whitespace-pre-wrap">{current.deliverables}</dd></div>
+          {current.excluded_work ? <div className="sm:col-span-2"><dt className="font-medium text-navy">Work not included</dt><dd className="whitespace-pre-wrap">{current.excluded_work}</dd></div> : null}
+          {current.payment_terms_text ? <div className="sm:col-span-2"><dt className="font-medium text-navy">Payment terms (information only)</dt><dd className="whitespace-pre-wrap">{current.payment_terms_text}</dd></div> : null}
+        </dl>
+      </section>
+
+      <section className="card" aria-labelledby="share-h">
+        <h2 id="share-h" className="text-lg">Customer link</h2>
+        {link && built ? (
+          <div className="mt-3 space-y-4">
+            <ShareReview agreementId={a.id}>
+              <ShareButtons url={built.url} subject={en.share.subject(a.project_name)} defaultMessage={en.share.body(creatorName, a.project_name, built.url)} />
+            </ShareReview>
+            <p className="text-sm text-muted">
+              {link.first_opened_at
+                ? `Link opened: first on ${formatDateTime(link.first_opened_at, tz)}, most recently on ${formatDateTime(link.last_opened_at!, tz)} (${link.open_count} time${link.open_count === 1 ? '' : 's'}). An open does not prove the customer read or understood the agreement.`
+                : 'No open recorded yet.'}
+              {link.expires_at ? ` The link expires on ${formatDateTime(link.expires_at, tz)}.` : ''}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a className="btn-secondary" href={`/a/${built.token}?preview=1`} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} aria-hidden="true" /> Preview as customer</a>
+              <form action={regenerateLinkAction.bind(null, a.id)}><SubmitButton variant="secondary"><RefreshCw size={16} aria-hidden="true" /> New link</SubmitButton></form>
+              <form action={revokeLinkAction.bind(null, a.id)}><SubmitButton variant="danger"><ShieldOff size={16} aria-hidden="true" /> Revoke link</SubmitButton></form>
+            </div>
+            <p className="text-xs text-muted">Creating a new link or revoking it stops the old link from working immediately.</p>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-muted">{link ? 'The link could not be shown. Check SHARE_TOKEN_SECRET, or create a new link.' : 'There is no active customer link.'}</p>
+            <form action={regenerateLinkAction.bind(null, a.id)}><SubmitButton>Create a new link</SubmitButton></form>
+          </div>
+        )}
+      </section>
+
+      {a.status === 'approved' || changes.length > 0 ? (
+        <section className="card" aria-labelledby="change-h">
+          <h2 id="change-h" className="text-lg">Change requests</h2>
+          {open ? (
+            <div className="mt-3 space-y-4">
+              <p className="text-sm"><span className="font-semibold text-navy">{open.status === 'clarification_requested' ? 'Pending: the customer asked a question.' : 'Pending: waiting for the customer.'}</span> {open.description}</p>
+              <ComparisonTable rows={compareTerms(current, open.proposed_terms, original)} difference={priceDifference(current, open.proposed_terms)} />
+              {built ? (
+                <ShareButtons idPrefix="change-share" url={built.url} subject={`Change proposed: ${a.project_name}`}
+                  defaultMessage={buildChangeShareMessage({ creator: creatorName, project: a.project_name, url: built.url, currency: a.currency, currentMinor: current.amount_minor, newMinor: open.proposed_terms.amount_minor, deltaMinor: open.price_delta_minor, currentDate: current.delivery_date, newDate: open.proposed_terms.delivery_date, description: open.description })} />
+              ) : <p className="text-sm text-muted">Create a customer link above to share this change.</p>}
+              <form action={withdrawChangeAction.bind(null, a.id, open.id)}><SubmitButton variant="secondary">Withdraw this proposal</SubmitButton></form>
+              {open.status === 'clarification_requested' ? <p className="text-sm text-muted">To answer, submit a revised proposal below. It replaces this one.</p> : null}
+            </div>
+          ) : null}
+          {a.status === 'approved' && (!open || open.status === 'clarification_requested') ? (
+            <details className="mt-4 rounded-xl border border-line p-4" open={!open && changes.length === 0}>
+              <summary className="cursor-pointer text-sm font-semibold text-brand">{open ? 'Send a revised proposal' : 'Propose a change'}</summary>
+              <ChangeCalculator action={proposeChangeAction.bind(null, a.id)} idempotencyKey={randomUUID()} currency={a.currency}
+                originalAmountMinor={original.amount_minor} originalDeliveryDate={original.delivery_date}
+                currentAmountMinor={a.current_amount_minor} currentDeliveryDate={a.current_delivery_date} currentRevisions={current.included_revisions}
+                currentDeliverables={current.deliverables} currentExcluded={current.excluded_work} currentVersion={a.current_version} />
+            </details>
+          ) : null}
+          <ChangeHistory changes={changes} versionByChange={versionByChange} currency={a.currency} timeZone={tz} />
+        </section>
+      ) : null}
+
+      {a.status === 'approved' && !open ? (
+        <section className="card" aria-labelledby="complete-h">
+          <h2 id="complete-h" className="text-lg">Finish the project</h2>
+          <p className="mt-1 text-sm text-muted">Marking the work complete is recorded as reported by you. It does not claim the customer confirmed receipt.</p>
+          <form action={completeAgreementAction.bind(null, a.id)} className="mt-3"><SubmitButton variant="secondary">Mark as completed</SubmitButton></form>
+        </section>
+      ) : null}
+
+      {['awaiting_approval', 'approved'].includes(a.status) && !open ? (
+        <section className="card" aria-labelledby="cancel-h">
+          <h2 id="cancel-h" className="text-lg">Cancel this agreement</h2>
+          <p className="mt-1 text-sm text-muted">Cancelling stops the customer link and frees a place under your plan limit. The agreement and its history are kept.</p>
+          <details className="mt-3">
+            <summary className="btn-danger inline-flex cursor-pointer list-none">Cancel agreement</summary>
+            <form action={cancelAgreementAction.bind(null, a.id)} className="mt-3 space-y-2">
+              <p className="text-sm text-ink">Are you sure? This cannot be undone.</p>
+              <SubmitButton variant="danger" pendingText="Cancelling…">Yes, cancel this agreement</SubmitButton>
+            </form>
+          </details>
+        </section>
+      ) : null}
+
+      {messages.length > 0 ? (
+        <section className="card" aria-labelledby="msg-h">
+          <h2 id="msg-h" className="flex items-center gap-2 text-lg"><MessageSquare size={18} aria-hidden="true" /> Customer messages</h2>
+          <ul className="mt-3 divide-y divide-line text-sm">
+            {messages.map((m) => (
+              <li key={m.id} className="py-3"><p className="whitespace-pre-wrap">{m.body}</p><p className="text-xs text-muted">{m.author_name} (name entered by customer) · {formatDateTime(m.created_at, tz)}</p></li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className="card" aria-labelledby="hist-h">
+        <h2 id="hist-h" className="flex items-center gap-2 text-lg"><History size={18} aria-hidden="true" /> History</h2>
+        <p className="mt-1 text-sm text-muted">History is append-only. Times are shown in {tz} and stored in UTC.</p>
+        <ol className="mt-4 space-y-4 border-l-2 border-line pl-4">
+          {events.map((e) => (
+            <li key={e.id} className="text-sm">
+              <p className="font-semibold text-navy">{en.events[e.event_type] ?? e.event_type}{e.version_number ? ` (version ${e.version_number})` : ''}</p>
+              {e.message ? <p className="whitespace-pre-wrap text-muted">{e.message}</p> : null}
+              <p className="text-xs text-muted">{e.actor_name ? `${e.actor_name} · ` : ''}{en.sources[e.source_label] ?? e.source_label} · {formatDateTime(e.created_at, tz)}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  );
+}
