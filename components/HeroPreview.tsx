@@ -26,18 +26,19 @@ const rows = [
 /** Illustration of the product built from sample data. Hidden from assistive tech; captioned on screen. */
 export function HeroPreview() {
   return (
-    <div className="relative mx-auto w-full max-w-2xl pb-10 sm:pb-12" aria-hidden="true">
+    <div className="relative mx-auto w-full max-w-2xl pb-8 sm:pb-12" aria-hidden="true">
       <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_28px_70px_rgba(7,26,61,0.3)]">
-        <div className="grid grid-cols-[88px_1fr] sm:grid-cols-[132px_1fr]">
-          <div className="bg-navy p-2.5 text-white sm:p-3">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold sm:text-xs"><LogoMark size={16} light /> AgreedLink</div>
-            <ul className="mt-3 space-y-1 text-[10px] sm:text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr]">
+          <div className="hidden bg-navy p-3 text-white sm:block">
+            <div className="flex items-center gap-1.5 text-xs font-bold"><LogoMark size={16} light /> AgreedLink</div>
+            <ul className="mt-3 space-y-1 text-[11px]">
               {nav.map(({ label, Icon, active }) => (
                 <li key={label} className={`flex items-center gap-1.5 rounded-md px-1.5 py-1.5 ${active ? 'bg-brand text-white' : 'text-blue-100'}`}><Icon size={11} /> {label}</li>
               ))}
             </ul>
           </div>
           <div className="min-w-0 p-3 sm:p-4">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-navy sm:hidden"><LogoMark size={16} /> AgreedLink</div>
             <p className="text-xs font-semibold text-navy sm:text-sm">Good morning</p>
             <p className="text-[10px] text-muted">Here is what is happening with your agreements</p>
             <div className="mt-3 grid grid-cols-3 gap-1.5">
@@ -67,10 +68,13 @@ export function HeroPreview() {
         </div>
       </div>
 
-      <div className="absolute -bottom-1 -left-1 w-28 rounded-[1.4rem] border-4 border-navy bg-white p-2 shadow-xl sm:-left-4 sm:w-36">
+      <div className="absolute -bottom-1 -left-1 hidden w-28 rounded-[1.4rem] border-4 border-navy bg-white p-2 shadow-xl sm:-left-4 sm:block sm:w-36">
         <div className="flex items-center justify-between"><p className="text-[9px] font-bold text-navy">AgreedLink</p><LogoMark size={12} /></div>
         <div className="mt-1.5 grid grid-cols-2 gap-1">
-          {stats.slice(0, 2).map(({ label, value, tone }) => (<div key={label} className="rounded-md border border-line p-1 text-center"><span className={`mx-auto block h-3 w-3 rounded ${tone}`} /><p className="text-[10px] font-semibold text-navy">{value}</p><p className="text-[7px] text-muted">{label}</p></div>))}
+          {stats.slice(0, 2).map(({ label, value, tone }) => (
+            <div key={label} className="rounded-md border border-line p-1 text-center">
+              <span className={`mx-auto block h-3 w-3 rounded ${tone}`} /><p className="text-[10px] font-semibold text-navy">{value}</p><p className="text-[7px] text-muted">{label}</p>
+            </div>))}
         </div>
         <div className="mt-1.5 rounded-md bg-brand py-1 text-center text-[8px] font-semibold text-white">Create agreement</div>
       </div>
