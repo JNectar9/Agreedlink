@@ -23,7 +23,11 @@ export function SiteFooter() {
         </ul>
         <ul className="min-w-0 space-y-2 text-sm">
           <li className="font-semibold text-white">Contact us</li>
-          <li className="flex flex-wrap items-center gap-x-2"><span className="text-blue-200">WhatsApp / Call:</span> <a className={a} href={`tel:${SITE.phone}`}>{SITE.phone}</a> {whatsappAvailable ? <a className="rounded-full border border-white/30 px-2 py-0.5 text-xs text-white hover:bg-white/10" href={whatsappLink()} target="_blank" rel="noopener noreferrer">Chat</a> : null}</li>
+          <li className="flex flex-wrap items-center gap-x-2">
+            <span className="text-blue-200">WhatsApp / Call:</span> <a className={a} href={`tel:${SITE.phone}`}>{SITE.phone}</a> {whatsappAvailable ? <a
+              className="rounded-full border border-white/30 px-2 py-0.5 text-xs text-white hover:bg-white/10"
+              href={whatsappLink()} target="_blank" rel="noopener noreferrer">Chat</a> : null}
+          </li>
           <li className="break-words"><span className="text-blue-200">Email:</span> <a className={a} href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
           <li className="break-words"><span className="text-blue-200">Website:</span> <a className={a} href={SITE.website} target="_blank" rel="noopener noreferrer">{SITE.website.replace(/^https?:\/\//, '')}</a></li>
           {SITE.address ? <li className="text-blue-200">{SITE.address}</li> : null}
@@ -38,7 +42,7 @@ export function SiteFooter() {
         </ul>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-5 text-xs text-blue-200 sm:flex-row sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 pb-24 pt-5 text-xs text-blue-200 sm:flex-row sm:justify-between sm:pb-5">
           <p>Created by {SITE.company}</p>
           <p>{SITE.product} is not a bank, escrow service, payment processor, or law firm.</p>
         </div>
