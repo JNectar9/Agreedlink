@@ -98,24 +98,13 @@ function backTo(agreementId: string): string {
 export async function changeVisibilityFormAction(formData: FormData) {
   const supabase = await session();
   const id = String(formData.get('attachment_id') ?? '');
-  const back = backTo(String(formData.get('agreement_id') ?? ''));
+  const agreementId = String(formData.get('agreement_id') ?? '');
+  // The agreement page sends return_to=agreement so the person stays on the Customer link page after toggling.
+  const back = String(formData.get('return_to') ?? '') === 'agreement' && isUuid(agreementId) ? `/dashboard/agreements/${agreementId}` : backTo(agreementId);
   const makeVisible = String(formData.get('make_visible') ?? '') === 'true';
   const go = (kind: 'error' | 'ok', message: string): never => redirect(`${back}?${kind}=${encodeURIComponent(message)}`);
   if (!isUuid(id)) go('error', 'That file could not be found.');
   const { error } = await supabase.rpc('set_attachment_visibility', { p_id: id, p_visible: makeVisible });
   if (error) go('error', attachmentErrorCopy(error));
   go('ok', makeVisible ? 'This file is now visible to your customer.' : 'This file is now private. Your customer cannot see it.');
-}
-
-export async function renameAttachmentFormAction(formData: FormData) {
-  const supabase = await session();
-  const id = String(formData.get('attachment_id') ?? '');
-  const back = backTo(String(formData.get('agreement_id') ?? ''));
-  const name = cleanFileName(String(formData.get('file_name') ?? ''));
-  const go = (kind: 'error' | 'ok', message: string): never => redirect(`${back}?${kind}=${encodeURIComponent(message)}`);
-  if (!isUuid(id)) go('error', 'That file could not be found.');
-  if (!name) go('error', 'Please type a file name.');
-  const { error } = await supabase.rpc('rename_attachment', { p_id: id, p_name: name });
-  if (error) go('error', attachmentErrorCopy(error));
-  go('ok', 'File renamed.');
 }
