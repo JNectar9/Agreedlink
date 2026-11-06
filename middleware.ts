@@ -1,24 +1,24 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// Keeps the Supabase session fresh and keeps signed-out visitors out of /dashboard and /portal.
-// The marketing pages in the matcher below only REFRESH the session. They never redirect and never sign anyone out,
-// so a signed-in person who opens the home page or Pricing is still signed in when they come back to the dashboard.
-const GUARDED = ['/dashboard', '/portal'];
+const PROTECTED = ['/dashboard', '/portal'];
+const isProtected = (path: string) => PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
 
+// Keeps the Supabase login fresh on every page in the matcher, and sends signed-out visitors away from the private pages only.
+// Public pages (home, pricing, about...) never redirect anyone; they only refresh the login so it is not lost when you
+// visit them from the dashboard.
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const guarded = GUARDED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
+  const protectedPath = isProtected(request.nextUrl.pathname);
   const toSignIn = () => {
     const target = request.nextUrl.clone();
+    const wanted = request.nextUrl.pathname;
     target.pathname = '/signin';
-    target.search = pathname === '/dashboard' ? '' : `?next=${encodeURIComponent(pathname)}`;
+    target.search = wanted === '/dashboard' ? '' : `?next=${encodeURIComponent(wanted)}`;
     return NextResponse.redirect(target);
   };
-  if (!url || !key) return guarded ? toSignIn() : NextResponse.next();
+  if (!url || !key) return protectedPath ? toSignIn() : NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
@@ -32,12 +32,11 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  if (!guarded) {
-    // Public page: refresh the session if there is one, and always let the page load.
+  if (!protectedPath) {
     try {
       await supabase.auth.getUser();
     } catch {
-      // A slow or failed refresh must never block a public page.
+      // A hiccup while refreshing must never block a public page.
     }
     return response;
   }
@@ -49,6 +48,4 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = {
-  matcher: ['/', '/pricing', '/about', '/contact', '/privacy', '/terms', '/dashboard/:path*', '/portal/:path*']
-};
+export const config = { matcher: ['/', '/pricing', '/about', '/contact', '/privacy', '/terms', '/dashboard/:path*', '/portal/:path*'] };
