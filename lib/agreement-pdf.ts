@@ -4,6 +4,7 @@ import { currencyExponent } from './money';
 import { describeIdentity, type ApprovalIdentity } from './identity';
 import { formatDateTime, formatPlainDate } from './time';
 import type { Terms } from './terms';
+import { formatBytes, typeLabel } from './attachments';
 
 export type PdfVersion = { number: number; createdAt: string; amountMinor: number; deliveryDate: string };
 export type PdfChange = { status: string; description: string; priceDeltaMinor: number; createdAt: string; decidedAt: string | null; decidedBy: string | null };
@@ -19,6 +20,10 @@ export type PdfInput = {
   changes: PdfChange[];
   timezone: string;
   generatedAt: string;
+  /** Customer-visible files only. The caller must never pass private files. */
+  attachments?: { fileName: string; mimeType: string; sizeBytes: number; addedAt: string }[];
+  /** The file list recorded when the current version was approved. null when no record exists. */
+  approvalFiles?: { recordedAt: string; differsNow: boolean; files: { fileName: string; mimeType: string; sizeBytes: number }[] } | null;
 };
 
 /** Money with the currency code, never a symbol, so every currency prints correctly: NGN 1,500.00 */
@@ -83,6 +88,24 @@ export function buildAgreementPdf(input: PdfInput): Uint8Array {
     doc.paragraph(`${id.label}: ${id.detail}`, { size: 9.5, color: [0.38, 0.43, 0.5] });
   } else {
     doc.paragraph('This version has no recorded approval.');
+  }
+
+  const shared = input.attachments ?? [];
+  if (shared.length > 0 || input.approvalFiles) {
+    doc.rule();
+    doc.heading('Files shared with the customer');
+    if (shared.length === 0) doc.paragraph('No files are currently shared with the customer.', { size: 9.5 });
+    for (const f of shared) {
+      doc.paragraph(`${f.fileName}  |  ${typeLabel(f.mimeType)}  |  ${formatBytes(f.sizeBytes)}  |  added ${formatDateTime(f.addedAt, tz)}`, { size: 9.5 });
+    }
+    const rec = input.approvalFiles;
+    if (rec) {
+      doc.gap(4);
+      doc.paragraph(`Files recorded at approval (version ${a.version}, ${formatDateTime(rec.recordedAt, tz)})`, { size: 9.5, bold: true });
+      if (rec.files.length === 0) doc.paragraph('No files were shared when this version was approved.', { size: 9.5, indent: 8 });
+      for (const f of rec.files) doc.paragraph(`${f.fileName}  |  ${typeLabel(f.mimeType)}  |  ${formatBytes(f.sizeBytes)}`, { size: 9.5, indent: 8 });
+      if (rec.differsNow) doc.paragraph('The files shared now differ from the files recorded at approval.', { size: 9, indent: 8, color: [0.38, 0.43, 0.5] });
+    }
   }
 
   if (versions.length > 0) {
