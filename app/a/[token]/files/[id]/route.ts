@@ -3,10 +3,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isServerConfigured } from '@/lib/env';
 import { hashToken, TOKEN_PATTERN } from '@/lib/tokens';
 import { isUuid } from '@/lib/subscriptions';
+import { inlineResponse } from '@/lib/inline-file';
 
 export const dynamic = 'force-dynamic';
 
-type FileRow = { id: string; file_name: string; mime_type: string; storage_path: string };
+type FileRow = { id: string; file_name: string; mime_type: string; size_bytes: number | string; storage_path: string };
 
 // Every failure returns the same plain 404, so a customer cannot tell a private file, another agreement's file,
 // a deleted file and a revoked or expired link apart.
@@ -32,6 +33,10 @@ export async function GET(request: Request, { params }: { params: { token: strin
   const signed = await admin.storage.from('attachments').createSignedUrl(file.storage_path, 60, inline ? undefined : { download: file.file_name });
   if (signed.error || !signed.data?.signedUrl) return new NextResponse('Could not prepare the file', { status: 500, headers: { 'Cache-Control': 'no-store' } });
 
+  if (inline) {
+    const shown = await inlineResponse(signed.data.signedUrl, file.mime_type, file.file_name, Number(file.size_bytes));
+    if (shown) return shown;
+  }
   const response = NextResponse.redirect(signed.data.signedUrl, 303);
   response.headers.set('Cache-Control', 'private, no-store');
   response.headers.set('Referrer-Policy', 'no-referrer');
