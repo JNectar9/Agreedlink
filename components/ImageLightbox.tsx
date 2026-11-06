@@ -1,12 +1,16 @@
 'use client';
 import { useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { Eye, X } from 'lucide-react';
 
-/** A thumbnail that opens a larger view. Has loading and error states and works with keyboard and touch. */
-export function ImageLightbox({ src, alt, downloadHref }: { src: string; alt: string; downloadHref?: string }) {
+/**
+ * A thumbnail that opens a larger view inside the app (no new tab, no download). Has loading and error states.
+ * showPreviewButton adds a "Preview" button under the thumbnail that opens the same view.
+ */
+export function ImageLightbox({ src, alt, downloadHref, showPreviewButton = false }: { src: string; alt: string; downloadHref?: string; showPreviewButton?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const open = () => dialog.current?.showModal();
 
   if (failed) {
     return <div className="flex h-40 w-full items-center justify-center rounded-xl border border-line bg-page p-3 text-center text-sm text-muted">Preview not available. Use Download to open this file.</div>;
@@ -14,11 +18,12 @@ export function ImageLightbox({ src, alt, downloadHref }: { src: string; alt: st
 
   return (
     <>
-      <button type="button" onClick={() => dialog.current?.showModal()} aria-label={`Enlarge ${alt}`}
+      <button type="button" onClick={open} aria-label={`Enlarge ${alt}`}
         className={`relative block w-full overflow-hidden rounded-xl border border-line bg-page ${loaded ? '' : 'min-h-[10rem] animate-pulse'}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={alt} loading="lazy" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} className="mx-auto max-h-64 w-full object-contain" />
       </button>
+      {showPreviewButton ? <button type="button" onClick={open} className="btn-secondary"><Eye size={16} aria-hidden="true" /> Preview</button> : null}
       <dialog ref={dialog} onClick={(e) => { if (e.target === dialog.current) dialog.current?.close(); }}
         className="m-auto max-h-[92vh] w-[min(96vw,64rem)] rounded-2xl border-0 bg-white p-3 backdrop:bg-black/70" aria-label={alt}>
         <div className="flex items-center justify-between gap-2 pb-2">
