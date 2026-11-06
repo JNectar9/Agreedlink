@@ -72,3 +72,40 @@ export function AttachmentUploader({ agreementId, limits }: Props) {
     </div>
   );
 }
+/** Used by the uploader: marks a pending file private BEFORE it is uploaded, so it is never visible even for a moment. */
+export async function setVisibilityAction(id: string, customerVisible: boolean): Promise<{ ok: true } | Fail> {
+  const supabase = await session();
+  if (!isUuid(id)) return { ok: false, error: 'That file could not be found.' };
+  const { error } = await supabase.rpc('set_attachment_visibility', { p_id: id, p_visible: Boolean(customerVisible) });
+  if (error) return { ok: false, error: attachmentErrorCopy(error) };
+  return { ok: true };
+}
+
+function backTo(agreementId: string): string {
+  return isUuid(agreementId) ? `/dashboard/agreements/${agreementId}/attachments` : '/dashboard';
+}
+
+export async function changeVisibilityFormAction(formData: FormData) {
+  const supabase = await session();
+  const id = String(formData.get('attachment_id') ?? '');
+  const back = backTo(String(formData.get('agreement_id') ?? ''));
+  const makeVisible = String(formData.get('make_visible') ?? '') === 'true';
+  const go = (kind: 'error' | 'ok', message: string): never => redirect(`${back}?${kind}=${encodeURIComponent(message)}`);
+  if (!isUuid(id)) go('error', 'That file could not be found.');
+  const { error } = await supabase.rpc('set_attachment_visibility', { p_id: id, p_visible: makeVisible });
+  if (error) go('error', attachmentErrorCopy(error));
+  go('ok', makeVisible ? 'This file is now visible to your customer.' : 'This file is now private. Your customer cannot see it.');
+}
+
+export async function renameAttachmentFormAction(formData: FormData) {
+  const supabase = await session();
+  const id = String(formData.get('attachment_id') ?? '');
+  const back = backTo(String(formData.get('agreement_id') ?? ''));
+  const name = cleanFileName(String(formData.get('file_name') ?? ''));
+  const go = (kind: 'error' | 'ok', message: string): never => redirect(`${back}?${kind}=${encodeURIComponent(message)}`);
+  if (!isUuid(id)) go('error', 'That file could not be found.');
+  if (!name) go('error', 'Please type a file name.');
+  const { error } = await supabase.rpc('rename_attachment', { p_id: id, p_name: name });
+  if (error) go('error', attachmentErrorCopy(error));
+  go('ok', 'File renamed.');
+}
