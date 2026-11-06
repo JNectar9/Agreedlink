@@ -143,7 +143,7 @@ export default async function HomePage() {
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-sm text-muted">File attachments, PDF records, and automatic email reminders are planned but not built yet.</p>
+          <p className="mt-4 text-sm text-muted">Client invitations by email, advanced templates, and team collaboration are planned but not built yet.</p>
         </section>
 
         {/* Why */}
