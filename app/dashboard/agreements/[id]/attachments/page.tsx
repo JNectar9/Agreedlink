@@ -9,6 +9,7 @@ import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { AttachmentUploader } from '@/components/AttachmentUploader';
+import { ImageLightbox } from '@/components/ImageLightbox';
 import { changeVisibilityFormAction, deleteAttachmentAction, renameAttachmentFormAction } from '@/app/dashboard/attachments/actions';
 
 export const metadata = { title: 'Attachments' };
@@ -105,11 +106,8 @@ export default async function AttachmentsPage({ params, searchParams }: { params
               const url = thumb.get(path);
               return (
                 <li key={f.id} className="space-y-3 py-4 text-sm">
-                  {kind === 'image' && url ? (
-                    <a href={`/dashboard/attachments/${f.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" aria-label={`Open ${f.fileName}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={f.fileName} loading="lazy" className="max-h-48 w-full rounded-xl border border-line bg-page object-contain" />
-                    </a>
+                 {kind === 'image' && url ? (
+                    <ImageLightbox src={url} alt={f.fileName} downloadHref={`/dashboard/attachments/${f.id}/download`} showPreviewButton />
                   ) : null}
                   <div className="min-w-0">
                     <p className="flex items-start gap-2 break-words font-semibold text-navy"><FileText size={16} className="mt-1 shrink-0" aria-hidden="true" /> <span className="min-w-0 break-words">{f.fileName}</span></p>
@@ -119,7 +117,7 @@ export default async function AttachmentsPage({ params, searchParams }: { params
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {kind !== 'other' ? <a href={`/dashboard/attachments/${f.id}/download?inline=1`} target="_blank" rel="noopener noreferrer" className="btn-secondary"><Eye size={16} aria-hidden="true" /> Preview</a> : null}
+                  {kind === 'pdf' || (kind === 'image' && !url) ? <a href={`/dashboard/attachments/${f.id}/download?inline=1`}target="_blank" rel="noopener noreferrer" className="btn-secondary"><Eye size={16} aria-hidden="true" /> Preview</a> : null}
                     <a href={`/dashboard/attachments/${f.id}/download`} className="btn-secondary"><Download size={16} aria-hidden="true" /> Download</a>
                     <form action={changeVisibilityFormAction}>
                       <input type="hidden" name="attachment_id" value={f.id} />
