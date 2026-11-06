@@ -20,14 +20,12 @@ type EventRow = { id: number; agreement_id: string; event_type: string; actor_na
 
 export default async function DashboardPage({ searchParams }: { searchParams: { error?: string; ok?: string } }) {
   const { supabase, user, profile } = await requireSession();
-  const [agreements, { data: notes }, { data: eventRows }, planRes, cfgRes] = await Promise.all([
+  const [agreements, { data: notes }, { data: eventRows }, planRes] = await Promise.all([
     loadAgreements(supabase),
     supabase.from('notifications').select('*').is('read_at', null).order('created_at', { ascending: false }).limit(5),
     supabase.from('agreement_events').select('id, agreement_id, event_type, actor_name, created_at').order('id', { ascending: false }).limit(6),
-    supabase.rpc('my_plan'),
-    supabase.rpc('subscription_public_config')
+    supabase.rpc('my_plan')
   ]);
-  const cardOn = (cfgRes.data as { paystack_enabled?: boolean } | null)?.paystack_enabled === true;
   const plan = PLAN_CONFIG[isPlanId(planRes.data) ? planRes.data : 'free'];
   const events = (eventRows ?? []) as EventRow[];
   const names = new Map(agreements.map((a) => [a.id, a.project_name]));
@@ -111,7 +109,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
                 <li key={href}>
                   <Link href={href} className={`flex min-h-[48px] items-center gap-3 rounded-xl p-2 ${primary ? 'bg-brand text-white hover:bg-brand-hover' : 'hover:bg-brand-soft'}`}>
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${primary ? 'bg-white/20' : 'bg-brand-soft text-brand'}`}><Icon size={18} aria-hidden="true" /></span>
-                    <span className="min-w-0"><span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span><span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span></span>
+                    <span className="min-w-0">
+                      <span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span>
+                      <span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -130,9 +131,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           <section className="rounded-2xl bg-brand p-5 text-white shadow-[0_8px_30px_rgba(23,105,255,0.3)]" aria-label="Upgrade">
             <Sparkles size={26} aria-hidden="true" />
             <h2 className="mt-2 text-lg !text-white">Need more room?</h2>
-            <p className="mt-1 text-sm text-blue-100">
-              Pro allows 50 active agreements and Premium 200. {cardOn ? 'Pay online with Paystack, or pay by bank transfer in naira and an administrator will activate your plan.' : 'Pay by bank transfer in naira and an administrator will activate your plan.'}
-            </p>
+            <p className="mt-1 text-sm text-blue-100">Pro allows 50 active agreements and Premium 200. Online payment is not available yet, and nobody is charged today.</p>
             <Link href="/dashboard/billing" className="btn mt-3 w-full bg-white text-navy hover:bg-brand-soft">View plans</Link>
           </section>
         </div>
