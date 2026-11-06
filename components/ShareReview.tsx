@@ -4,11 +4,10 @@ import type { ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { formatBytes, toAttachment, typeLabel, type Attachment } from '@/lib/attachments';
 import { fileKind } from '@/lib/attachment-visibility';
-import { ShareReviewGate } from '@/components/ShareReviewGate';
 
 /**
  * "Review what your customer will see". Wrap the customer link and share buttons with this component.
- * Shows visible files (with image previews) and which files are private and excluded, then requires a confirmation.
+ * Shows visible files (with image previews) and which files are private and excluded.
  */
 export async function ShareReview({ agreementId, children }: { agreementId: string; children: ReactNode }) {
   const supabase = createClient();
@@ -55,7 +54,7 @@ export async function ShareReview({ agreementId, children }: { agreementId: stri
         ) : null}
         <Link href={`/dashboard/agreements/${agreementId}/attachments`} className="text-sm font-semibold text-brand">Manage files and visibility</Link>
       </div>
-      <ShareReviewGate visibleCount={visible.length}>{children}</ShareReviewGate>
+      {children}
     </div>
   );
 }
