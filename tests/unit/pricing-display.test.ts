@@ -39,7 +39,7 @@ describe('available versus coming soon', () => {
     for (const id of PLAN_ORDER) {
       expect(comingSoonFeatures(id)).toEqual(PLAN_CONFIG[id].features.filter((f) => !f.live).map((f) => f.text));
     }
-    expect(comingSoonFeatures('pro')).toContain('PDF export');
+    expect(comingSoonFeatures('pro')).toContain('Client invitations by email');
     expect(comingSoonFeatures('premium')).toContain('Team collaboration and shared workspace');
   });
   it('lists saved templates as available now, and no longer as coming soon', () => {
@@ -48,8 +48,16 @@ describe('available versus coming soon', () => {
     for (const id of PLAN_ORDER) expect(comingSoonFeatures(id).some((f) => /saved template/i.test(f)), id).toBe(false);
     expect(comingSoonFeatures('premium')).toContain('Advanced templates and reusable workflows');
   });
+  it('lists PDF export, attachments and reporting as available now, and keeps the unbuilt ones as coming soon', () => {
+    expect(availableFeatures('pro')).toContain('PDF export');
+    expect(availableFeatures('pro')).toContain('Attachments up to 10 MB per file (100 MB in total)');
+    expect(availableFeatures('premium')).toContain('Attachments up to 50 MB per file (250 MB in total)');
+    expect(availableFeatures('premium')).toContain('Advanced reporting');
+    expect(comingSoonFeatures('pro')).toEqual(['Client invitations by email']);
+    expect(comingSoonFeatures('premium')).toEqual(['Advanced templates and reusable workflows', 'Team collaboration and shared workspace']);
+  });
   it('does not advertise planned features in the available lists', () => {
-    const planned = ['PDF export', 'Attachments', 'Client invitations', 'storage', 'Team collaboration', 'reporting'];
+    const planned = ['Client invitations', 'Team collaboration', 'Advanced templates'];
     for (const id of PLAN_ORDER) for (const f of availableFeatures(id)) for (const word of planned) expect(f.toLowerCase().includes(word.toLowerCase()), `${id}: ${f}`).toBe(false);
   });
 });
