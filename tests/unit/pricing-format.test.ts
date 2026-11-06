@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_NGN_MINOR, DEFAULT_USD_MINOR, nairaShort, pricingFromRows } from '@/lib/pricing-format';
+import { DEFAULT_NGN_MINOR, DEFAULT_USD_MINOR, nairaShort, ngnPricesFromConfig, pricingFromRows } from '@/lib/pricing-format';
 
 describe('homepage pricing', () => {
   it('formats naira from kobo', () => {
@@ -32,5 +32,9 @@ describe('homepage pricing', () => {
   });
   it('uses the configured USD reference prices', () => {
     expect(pricingFromRows({ price_pro_minor: 1000, price_premium_minor: 2500 }, null).usdMinor).toEqual({ pro: 1000, premium: 2500 });
+  });
+  it('reads naira prices from the public config result', () => {
+    expect(ngnPricesFromConfig({ ngn_prices: { pro: 1500000, premium: 3800000 } })).toEqual({ pro: 1500000, premium: 3800000 });
+    expect(ngnPricesFromConfig(undefined)).toEqual({ pro: DEFAULT_NGN_MINOR.pro, premium: DEFAULT_NGN_MINOR.premium });
   });
 });
