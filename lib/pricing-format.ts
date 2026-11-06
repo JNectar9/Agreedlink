@@ -41,3 +41,14 @@ export function pricingFromRows(
     paystackEnabled: enabled
   };
 }
+
+/** Naira prices (kobo) from the subscription_public_config result, falling back to the agreed 14,000 and 36,000. */
+export function ngnPricesFromConfig(cfg: unknown): { pro: number; premium: number } {
+  const prices = (cfg as { ngn_prices?: { pro?: unknown; premium?: unknown } | null } | null | undefined)?.ngn_prices;
+  const pro = prices?.pro;
+  const premium = prices?.premium;
+  return {
+    pro: isPositiveInt(pro) ? pro : DEFAULT_NGN_MINOR.pro,
+    premium: isPositiveInt(premium) ? premium : DEFAULT_NGN_MINOR.premium
+  };
+}
