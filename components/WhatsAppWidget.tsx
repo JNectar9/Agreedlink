@@ -19,9 +19,9 @@ export function WhatsAppWidget({ number }: { number: string }) {
   }, []);
   const link = (text: string) => `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
   return (
-    <div className="fixed bottom-4 right-3 z-40 flex flex-col items-end gap-3 sm:right-4">
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-40 flex flex-col items-end gap-3 sm:bottom-4 sm:right-4">
       {open ? (
-        <div role="dialog" aria-label="Chat on WhatsApp" className="max-h-[70vh] w-[min(88vw,20rem)] overflow-y-auto rounded-2xl border border-line bg-white shadow-2xl">
+        <div role="dialog" aria-label="Chat on WhatsApp" className="w-[min(88vw,20rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
           <div className="flex items-center justify-between bg-[#075E54] px-4 py-3 text-white">
             <div><p className="text-sm font-semibold">WhatsApp</p><p className="text-xs text-green-100">Chat with JNectar</p></div>
             <button type="button" onClick={() => setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10" aria-label="Close chat"><X size={18} aria-hidden="true" /></button>
@@ -30,8 +30,7 @@ export function WhatsAppWidget({ number }: { number: string }) {
             <p className="max-w-[85%] rounded-xl rounded-tl-none bg-white p-3 text-sm text-ink shadow-sm">Hi! Welcome to AgreedLink. How can we help you today?</p>
             <div className="flex flex-wrap gap-2">
               {topics.map((t) => (
-                <a key={t.label} href={link(t.text)} target="_blank" rel="noopener noreferrer"
-                  className="rounded-full border border-[#25D366] bg-white px-3 py-1.5 text-xs font-semibold text-[#075E54] hover:bg-green-50">{t.label}</a>
+                <a key={t.label} href={link(t.text)} target="_blank" rel="noopener noreferrer" className="rounded-full border border-[#25D366] bg-white px-3 py-1.5 text-xs font-semibold text-[#075E54] hover:bg-green-50">{t.label}</a>
               ))}
             </div>
             <p className="text-[11px] text-muted">Choosing an option opens WhatsApp with a message ready to send. Replies come from JNectar, not an automatic bot.</p>
