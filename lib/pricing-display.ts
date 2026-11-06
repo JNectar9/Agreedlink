@@ -32,8 +32,8 @@ export function availableFeatures(id: PlanId, activeLimit: number = PLAN_CONFIG[
       'Standard support'
     ];
   }
-  if (id === 'pro') return ['Everything in Free', limit, '10 saved templates'];
-  return ['Everything in Pro', limit, 'Priority support'];
+  if (id === 'pro') return ['Everything in Free', limit, '10 saved templates', 'PDF export', 'Attachments up to 10 MB per file (100 MB in total)'];
+  return ['Everything in Pro', limit, 'Priority support', 'Attachments up to 50 MB per file (250 MB in total)', 'Advanced reporting'];
 }
 
 /** Planned features for one plan. Never shown as available. */
