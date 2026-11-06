@@ -32,8 +32,8 @@ export const PLAN_CONFIG: Record<PlanId, PlanConfig> = {
       { text: 'Customer approval links and approval workflow', live: true },
       { text: 'Agreement history and tracking', live: true },
       { text: '10 saved templates', live: true },
-      { text: 'Attachments up to 10 MB per file', live: false },
-      { text: 'PDF export', live: false },
+      { text: 'Attachments up to 10 MB per file (100 MB in total)', live: true },
+      { text: 'PDF export', live: true },
       { text: 'Client invitations by email', live: false }
     ]
   },
@@ -47,9 +47,8 @@ export const PLAN_CONFIG: Record<PlanId, PlanConfig> = {
       { text: 'Up to 200 active agreements at one time', live: true },
       { text: 'Priority support', live: true },
       { text: 'Advanced templates and reusable workflows', live: false },
-      { text: 'Advanced reporting and activity history', live: false },
-      { text: 'Attachments up to 100 MB per file', live: false },
-      { text: '2 GB total storage per account', live: false },
+      { text: 'Advanced reporting', live: true },
+      { text: 'Attachments up to 50 MB per file (250 MB in total)', live: true },
       { text: 'Team collaboration and shared workspace', live: false }
     ]
   }
