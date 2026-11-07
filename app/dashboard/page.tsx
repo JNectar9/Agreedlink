@@ -109,7 +109,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
                 <li key={href}>
                   <Link href={href} className={`flex min-h-[48px] items-center gap-3 rounded-xl p-2 ${primary ? 'bg-brand text-white hover:bg-brand-hover' : 'hover:bg-brand-soft'}`}>
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${primary ? 'bg-white/20' : 'bg-brand-soft text-brand'}`}><Icon size={18} aria-hidden="true" /></span>
-                    <span className="min-w-0"><span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span><span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span></span>
+                    <span className="min-w-0">
+                      <span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span>
+                      <span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -129,7 +132,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
             <Sparkles size={26} aria-hidden="true" />
             <h2 className="mt-2 text-lg !text-white">Need more room?</h2>
             <p className="mt-1 text-sm text-blue-100">Pro allows 50 active agreements and Premium 200. Online payment is not available yet, and nobody is charged today.</p>
-            <Link href="/pricing" className="btn mt-3 w-full bg-white text-navy hover:bg-brand-soft">View plans</Link>
+            <Link href="/dashboard/billing" className="btn mt-3 w-full bg-white text-navy hover:bg-brand-soft">View plans</Link>
           </section>
         </div>
       </div>

@@ -19,7 +19,7 @@ export function WhatsAppWidget({ number }: { number: string }) {
   }, []);
   const link = (text: string) => `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-40 flex flex-col items-end gap-3 sm:bottom-4 sm:right-4">
       {open ? (
         <div role="dialog" aria-label="Chat on WhatsApp" className="w-[min(88vw,20rem)] overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
           <div className="flex items-center justify-between bg-[#075E54] px-4 py-3 text-white">
@@ -38,7 +38,7 @@ export function WhatsAppWidget({ number }: { number: string }) {
         </div>
       ) : null}
       <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={open ? 'Close WhatsApp chat' : 'Chat on WhatsApp'}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:brightness-95">
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:brightness-95 sm:h-14 sm:w-14">
         <MessageCircle size={26} aria-hidden="true" />
       </button>
     </div>

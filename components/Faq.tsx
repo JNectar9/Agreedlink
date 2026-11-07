@@ -1,8 +1,9 @@
 import { ChevronDown } from 'lucide-react';
 import { FAQ } from '@/lib/faq';
 
-export function Faq({ limit }: { limit?: number }) {
-  const items = limit ? FAQ.slice(0, limit) : FAQ;
+export function Faq({ limit, items: custom }: { limit?: number; items?: { q: string; a: string }[] }) {
+  const all = custom ?? FAQ;
+  const items = limit ? all.slice(0, limit) : all;
   return (
     <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white">
       {items.map((item) => (

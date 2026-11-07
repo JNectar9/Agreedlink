@@ -11,7 +11,7 @@ export default function PrivacyPage() {
         <li>Email address and a hashed password, handled by our authentication provider (Supabase).</li>
         <li>Full name, optional phone number, business name, time zone, and default currency that you enter, and the time you accepted these terms.</li>
         <li>An optional profile photo, stored privately so only you can access it.</li>
-        <li>Agreements you create: project details, prices, dates, and the client name and optional client email you enter.</li>
+        <li>Agreements you create: project details, prices, dates, and the customer name and optional customer email you enter.</li>
         <li>Optional business profile details you enter in Settings (business email, phone, website, address). They are shown to customers on the approval page for your agreements.</li>
       </ul>
       <h2>What we record when customers use a link</h2>
@@ -26,7 +26,7 @@ export default function PrivacyPage() {
       <ul>
         <li>We do not sell personal data or send marketing email.</li>
         <li>We do not send email to your customers. The app does not send email at all in this release.</li>
-        <li>We do not process payments or store card or bank details.</li>
+        <li>We do not process payments between you and your customers. Card payments for your AgreedLink subscription are handled by Paystack, and we do not store your card details. We store the payment reference you send us for bank transfer requests.</li>
       </ul>
       <h2>Hosting and providers</h2>
       <p>Data is stored with Supabase and the site is served by your hosting provider. These providers may keep their own technical logs, such as IP addresses. [Legal review needed: list providers, locations, and retention periods.]</p>

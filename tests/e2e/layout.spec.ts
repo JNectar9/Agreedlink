@@ -18,8 +18,13 @@ for (const width of widths) {
 
 test('landing page shows the reference headline and calls to action', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Make Agreements');
-  await expect(page.getByRole('link', { name: /Create an Agreement/ }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('I never said that.');
+  await expect(page.getByRole('link', { name: /Get Started Free/ }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /See How It Works/ })).toBeVisible();
+  await expect(page.getByText(/join thousands/i)).toHaveCount(0);
+  await expect(page.getByText(/in US dollars/i)).toHaveCount(0);
+  await expect(page.getByText(/coming soon/i)).toHaveCount(0);
+  await expect(page.getByText(/bank transfer in Naira/)).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Frequently asked questions' })).toBeVisible();
 });
 
@@ -29,9 +34,10 @@ test('the WhatsApp helper opens and offers prefilled options', async ({ page }) 
   await expect(page.getByRole('link', { name: 'Talk to a human' })).toHaveAttribute('href', /wa\.me\/2348029864569/);
 });
 
-test('the pricing page can show prices in another currency without inventing one', async ({ page }) => {
-  await page.goto('/pricing?currency=GBP');
-  await expect(page.getByText(/has not been confirmed/).first()).toBeVisible();
+test('the pricing page shows US dollar prices only and ignores other currencies', async ({ page }) => {
   await page.goto('/pricing?currency=NGN');
-  await expect(page.getByText(/₦11,700/).first()).toBeVisible();
+  await expect(page.getByText(/\$9\/month/).first()).toBeVisible();
+  await expect(page.getByText(/\$24\/month/).first()).toBeVisible();
+  await expect(page.getByText('₦')).toHaveCount(0);
+  await expect(page.getByText(/approximate/i)).toHaveCount(0);
 });

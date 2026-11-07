@@ -16,8 +16,11 @@ const config: Config = {
         bad: { DEFAULT: '#B91C1C', bg: '#FEF2F2' }
       },
       fontFamily: { sans: ['var(--font-inter)', 'system-ui', 'sans-serif'] },
-      keyframes: { loadbar: { '0%': { transform: 'translateX(-110%)' }, '100%': { transform: 'translateX(260%)' } } },
-      animation: { loadbar: 'loadbar 1.3s ease-in-out infinite' }
+      keyframes: {
+        loadbar: { '0%': { transform: 'translateX(-110%)' }, '100%': { transform: 'translateX(260%)' } },
+        fadeUp: { '0%': { opacity: '0', transform: 'translateY(14px)' }, '100%': { opacity: '1', transform: 'none' } }
+      },
+      animation: { loadbar: 'loadbar 1.3s ease-in-out infinite', 'fade-up': 'fadeUp 0.6s ease-out both' }
     }
   },
   plugins: []

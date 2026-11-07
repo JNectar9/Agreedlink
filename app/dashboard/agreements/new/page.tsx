@@ -5,15 +5,23 @@ import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { currencyOptions } from '@/lib/money';
 import { CurrencyField } from '@/components/CurrencyField';
-import { getTemplate } from '@/lib/templates';
+import { getTemplate, type TemplateValues } from '@/lib/templates';
+import { toTemplateValues } from '@/lib/saved-templates';
+import { isUuid } from '@/lib/subscriptions';
 import { createAgreementAction } from '../../actions';
 
 export const metadata = { title: 'New agreement' };
 export const dynamic = 'force-dynamic';
 
-export default async function NewAgreementPage({ searchParams }: { searchParams: { error?: string; template?: string } }) {
-  const { profile } = await requireSession();
-  const tpl = getTemplate(searchParams.template);
+export default async function NewAgreementPage({ searchParams }: { searchParams: { error?: string; template?: string; saved?: string } }) {
+  const { supabase, profile } = await requireSession();
+  // A ready-made starter (?template=) or one of the customer's own saved templates (?saved=). Reading a saved
+  // template is limited to its owner by row-level security.
+  let tpl: { name: string; values: TemplateValues } | undefined = getTemplate(searchParams.template);
+  if (!tpl && isUuid(searchParams.saved)) {
+    const { data } = await supabase.from('saved_templates').select('name, fields').eq('id', searchParams.saved).maybeSingle();
+    if (data) tpl = { name: String(data.name), values: toTemplateValues(data.fields) };
+  }
   const v = tpl?.values ?? {};
   const field = 'space-y-4';
   return (
