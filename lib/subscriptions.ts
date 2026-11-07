@@ -41,7 +41,10 @@ export type MyRequestRow = {
   months: number;
   expected_amount_minor: number | null;
   currency: string;
+  /** The customer's own bank transfer transaction ID. */
   payment_reference: string;
+  /** AgreedLink's generated reference (AGL-YYYYMMDD-XXXXX). Empty on requests made before references existed. */
+  transfer_reference?: string | null;
   customer_notes: string;
   status: RequestStatus;
   rejection_reason: string | null;
@@ -76,7 +79,7 @@ export function parseRequestForm(input: Record<string, unknown>): { ok: true; va
   const months = Number(text('months'));
   if (!Number.isInteger(months) || months < 1 || months > 12) return { ok: false, error: 'Choose between 1 and 12 months.' };
   const reference = text('payment_reference');
-  if (reference.length < 3 || reference.length > 120) return { ok: false, error: 'Enter your payment reference or transfer ID (3 to 120 characters).' };
+  if (reference.length < 3 || reference.length > 120) return { ok: false, error: 'Enter your bank transfer transaction ID (3 to 120 characters).' };
   const notes = text('customer_notes');
   if (notes.length > 1000) return { ok: false, error: 'Notes must be 1,000 characters or fewer.' };
   return { ok: true, value: { plan, months, reference, notes } };
@@ -92,8 +95,9 @@ const DB_ERRORS: Record<string, string> = {
   not_authenticated: 'Please sign in again.',
   not_authorized: 'You do not have permission to do that.',
   request_already_decided: 'That request has already been decided. Refresh the page to see its current state.',
-  payment_reference_required: 'A payment reference of at least 3 characters is required.',
-  payment_reference_already_used: 'That payment reference has already been used for another subscription.',
+  payment_reference_required: 'A bank transaction ID of at least 3 characters is required.',
+  payment_reference_already_used: 'That bank transaction ID has already been used for another subscription.',
+  reference_generation_failed: 'Could not create your payment reference. Please try again.',
   invalid_amount: 'Enter an amount above zero.',
   invalid_months: 'Choose between 1 and 12 months.',
   invalid_plan: 'Choose Pro or Premium.',
