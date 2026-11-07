@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Calendar, CheckCircle2, FileText, Lock, ShieldCheck, XCircle } from 'lucide-react';
+import { Calendar, Check, CheckCircle2, FileText, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
@@ -17,7 +17,7 @@ import { hashToken, TOKEN_PATTERN } from '@/lib/tokens';
 import { compareTerms, priceDifference, pricingLabel, type Terms } from '@/lib/terms';
 import { formatMinorSafe } from '@/lib/money';
 import { formatPlainDate } from '@/lib/time';
-import { reviewSubtitle, splitDeliverables } from '@/lib/review-layout';
+import { compactMoney, reviewSubtitle, splitDeliverables } from '@/lib/review-layout';
 import { errorCopy } from '@/messages/en';
 import { decideAgreementAction, decideChangeAction } from './actions';
 
@@ -172,7 +172,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
           </div>
           <div className="min-w-0 border-l border-line pl-4">
             <dt className="text-xs font-semibold uppercase tracking-wide text-muted">Agreed price</dt>
-            <dd className="text-lg font-bold text-navy">{money(t.amount_minor)}</dd>
+            <dd className="text-lg font-bold text-navy">{compactMoney(t.amount_minor, t.currency)}</dd>
           </div>
           <div className="col-span-2 flex items-center gap-3">
             <Calendar size={22} className="shrink-0 text-muted" aria-hidden="true" />
@@ -182,23 +182,26 @@ export default async function CustomerPage({ params, searchParams }: { params: {
             </div>
           </div>
         </dl>
+        <div className="mt-4 border-t border-line pt-4">
+          <h2 id="work-h" className="text-lg font-bold text-navy">Work and deliverables</h2>
+          <ul className="mt-3 space-y-2.5">
+            {deliverableItems.map((item, i) => (
+              <li key={`${i}-${item}`} className="flex items-start gap-3 text-sm text-ink">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ok text-white" aria-hidden="true"><Check size={13} strokeWidth={3} /></span>
+                <span className="min-w-0 break-words">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         {view.approval ? <p className="mt-4 text-sm text-muted">Approved by {view.approval.approved_by_name} on <LocalTime iso={view.approval.approved_at} />. {describeIdentity(view.approval).label}: {describeIdentity(view.approval).detail}</p> : null}
         {view.business && [view.business.email, view.business.phone, view.business.website, view.business.address].some(Boolean) ? (
           <p className="mt-3 text-sm text-muted">Contact {view.creator_name}: {[view.business.email, view.business.phone, view.business.website, view.business.address].filter(Boolean).join(' \u00b7 ')}</p>
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm" aria-labelledby="work-h">
-        <h2 id="work-h" className="text-lg font-bold text-navy">Work and deliverables</h2>
-        <ul className="mt-3 space-y-2">
-          {deliverableItems.map((item, i) => (
-            <li key={`${i}-${item}`} className="flex items-start gap-2.5 text-sm text-ink">
-              <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" />
-              <span className="min-w-0 break-words">{item}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-4 space-y-4 border-t border-line pt-4 text-sm">
+      <section className="rounded-2xl border border-line bg-white p-4 shadow-sm" aria-labelledby="terms-h">
+        <h2 id="terms-h" className="text-lg font-bold text-navy">Terms and details</h2>
+        <dl className="mt-3 space-y-4 text-sm">
           <div><dt className="font-medium text-navy">Description</dt><dd className="whitespace-pre-wrap break-words">{t.description}</dd></div>
           <div className="grid grid-cols-2 gap-4">
             <div><dt className="font-medium text-navy">Included revisions</dt><dd>{t.included_revisions}</dd></div>
@@ -218,7 +221,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
             <CheckCircle2 size={24} className="mt-0.5 shrink-0 text-navy" aria-hidden="true" />
             <div>
               <h2 className="text-lg font-bold text-navy">Your decision</h2>
-              <p className="text-sm text-muted">Please confirm whether you agree with these details. Nothing is final until you choose.</p>
+              <p className="text-sm text-muted">Please confirm whether you agree with these details.</p>
             </div>
           </div>
           <input type="hidden" name="version" value={view.version} />
@@ -231,6 +234,7 @@ export default async function CustomerPage({ params, searchParams }: { params: {
               <SubmitButton name="decision" value="decline" variant="secondary" className={SOFT}>Decline agreement</SubmitButton>
             </div>
           )}
+          <p className="text-center text-xs text-muted">Nothing is final until you choose.</p>
         </form>
       ) : null}
 
