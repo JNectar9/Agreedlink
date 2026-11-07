@@ -34,7 +34,7 @@ export const PLAN_CONFIG: Record<PlanId, PlanConfig> = {
       { text: '10 saved templates', live: true },
       { text: 'Attachments up to 10 MB per file (100 MB in total)', live: true },
       { text: 'PDF export', live: true },
-      { text: 'Client invitations by email', live: false }
+      { text: 'Customer invitations by email', live: false }
     ]
   },
   premium: {
