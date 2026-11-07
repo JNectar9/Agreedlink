@@ -1,16 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Download, Eye, EyeOff, FileText, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { requireSession } from '@/lib/data';
 import { isUuid } from '@/lib/subscriptions';
 import { MAX_FILES_PER_AGREEMENT, attachmentErrorCopy, formatBytes, parseLimits, toAttachment, typeLabel, type Attachment } from '@/lib/attachments';
-import { VISIBILITY_NOTE, compareWithApproval, fileKind, visibilityBadge } from '@/lib/attachment-visibility';
+import { VISIBILITY_NOTE, compareWithApproval, fileKind } from '@/lib/attachment-visibility';
+import { PILL_CLASS, agreementPill } from '@/lib/review-layout';
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
-import { SubmitButton } from '@/components/SubmitButton';
 import { AttachmentUploader } from '@/components/AttachmentUploader';
-import { ImageLightbox } from '@/components/ImageLightbox';
-import { changeVisibilityFormAction, deleteAttachmentAction, renameAttachmentFormAction } from '@/app/dashboard/attachments/actions';
+import { AttachmentCard } from '@/components/AttachmentCard';
 
 export const metadata = { title: 'Attachments' };
 export const dynamic = 'force-dynamic';
@@ -18,9 +17,10 @@ export const dynamic = 'force-dynamic';
 export default async function AttachmentsPage({ params, searchParams }: { params: { id: string }; searchParams: { error?: string; ok?: string } }) {
   if (!isUuid(params.id)) notFound();
   const { supabase, profile } = await requireSession();
-  const { data: agreement } = await supabase.from('agreements').select('id, project_name, current_version').eq('id', params.id).maybeSingle();
+  const { data: agreement } = await supabase.from('agreements').select('id, project_name, current_version, status').eq('id', params.id).maybeSingle();
   if (!agreement) notFound();
   const version = Number((agreement as { current_version?: number }).current_version ?? 1);
+  const pill = agreementPill(String((agreement as { status?: string }).status ?? ''));
 
   const [limitsRes, listRes, recordRes, snapRes] = await Promise.all([
     supabase.rpc('my_attachment_limits'),
@@ -34,13 +34,13 @@ export default async function AttachmentsPage({ params, searchParams }: { params
   const files = items.map((x) => x.file);
   const allowed = Boolean(limits && limits.maxFileBytes > 0);
   const usedPercent = limits && limits.totalBytes > 0 ? Math.min(100, Math.round((limits.usedBytes / limits.totalBytes) * 100)) : 0;
-  const atFileLimit = files.length >= MAX_FILES_PER_AGREEMENT;
+  const slotsLeft = Math.max(0, MAX_FILES_PER_AGREEMENT - files.length);
   const setupError = limitsRes.error ?? listRes.error ?? null;
 
   // Owner-only thumbnails: short-lived private links made with the owner's own session.
   const imagePaths = items.filter((x) => fileKind(x.file.mimeType) === 'image').map((x) => x.path);
   const signed = imagePaths.length > 0 ? await supabase.storage.from('attachments').createSignedUrls(imagePaths, 600) : null;
-  const thumb = new Map((signed?.data ?? []).map((s) => [s.path ?? '', s.signedUrl]));
+  const thumb = new Map<string, string>((signed?.data ?? []).map((s) => [s.path ?? '', s.signedUrl] as [string, string]));
 
   const record = recordRes.error ? null : (recordRes.data as { approved_at: string } | null);
   const snapshot = snapRes.error ? [] : ((snapRes.data ?? []) as { attachment_id: string; file_name: string; mime_type: string; size_bytes: number }[]);
@@ -48,14 +48,24 @@ export default async function AttachmentsPage({ params, searchParams }: { params
 
   return (
     <div className="max-w-3xl space-y-5">
-      <Link href={`/dashboard/agreements/${params.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-brand"><ArrowLeft size={16} aria-hidden="true" /> Back to agreement</Link>
+      <Link href={`/dashboard/agreements/${params.id}`} className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-ink"><ArrowLeft size={18} aria-hidden="true" /> Back to agreement</Link>
       <div>
-        <h1 className="text-2xl sm:text-3xl">Attachments</h1>
-        <p className="break-words text-sm text-muted">{String((agreement as { project_name: string }).project_name)}</p>
-        <p className="mt-2 text-sm text-ink">Visible files are shown to your customer on their approval page. Private files are never shown. You can change this per file.</p>
+        <h1 className="text-3xl font-bold">Attachments</h1>
+        <p className="mt-1 text-muted">Manage files attached to this agreement.</p>
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
       {setupError ? <Notice error={attachmentErrorCopy(setupError)} /> : null}
+
+      <section className="flex items-center gap-3 rounded-2xl border border-brand/20 bg-brand-soft p-4" aria-label="Agreement">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-brand" aria-hidden="true"><FileText size={26} /></span>
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-lg font-bold text-navy">{String((agreement as { project_name: string }).project_name)}</p>
+          <p className="text-sm text-muted">Your agreement files and documents</p>
+        </div>
+        <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${PILL_CLASS[pill.tone]}`}>
+          <span className="h-2 w-2 rounded-full bg-current" aria-hidden="true" /> {pill.text}
+        </span>
+      </section>
 
       {!allowed && !setupError ? (
         <section className="card space-y-3">
@@ -66,24 +76,19 @@ export default async function AttachmentsPage({ params, searchParams }: { params
       ) : null}
 
       {allowed && limits ? (
-        <>
-          <section className="card space-y-3" aria-label="Storage used">
-            <p className="text-sm text-ink">Storage used: <strong>{formatBytes(limits.usedBytes)}</strong> of {formatBytes(limits.totalBytes)}</p>
-            <div className="h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={usedPercent} aria-label="Storage used">
+        <section className="space-y-3" aria-label="Add files">
+          {slotsLeft === 0 ? (
+            <p role="status" className="rounded-xl border border-warn/30 bg-warn-bg p-3 text-sm text-warn">This agreement already has {MAX_FILES_PER_AGREEMENT} files. Delete one to add another.</p>
+          ) : (
+            <AttachmentUploader agreementId={params.id} limits={limits} slotsLeft={slotsLeft} />
+          )}
+          <div aria-label="Storage used">
+            <p className="text-xs text-muted">Storage used: <strong className="text-ink">{formatBytes(limits.usedBytes)}</strong> of {formatBytes(limits.totalBytes)}. Counts all your agreements. {VISIBILITY_NOTE}</p>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={usedPercent} aria-label="Storage used">
               <div className={`h-full rounded-full ${usedPercent >= 90 ? 'bg-bad' : 'bg-brand'}`} style={{ width: `${usedPercent}%` }} />
             </div>
-            <p className="text-xs text-muted">Counts all your agreements.</p>
-          </section>
-
-          <section className="card space-y-3" aria-label="Add a file">
-            <h2 className="text-lg">Add a file</h2>
-            {atFileLimit ? (
-              <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">This agreement already has {MAX_FILES_PER_AGREEMENT} files. Delete one to add another.</p>
-            ) : (
-              <AttachmentUploader agreementId={params.id} limits={limits} />
-            )}
-          </section>
-        </>
+          </div>
+        </section>
       ) : null}
 
       {comparison && !comparison.same ? (
@@ -96,58 +101,17 @@ export default async function AttachmentsPage({ params, searchParams }: { params
         </section>
       ) : null}
 
-      <section className="card" aria-label="Files">
-        <h2 className="text-lg">Files on this agreement</h2>
-        {files.length === 0 ? <p className="mt-3 text-sm text-muted">No files yet.</p> : (
-          <ul className="mt-2 divide-y divide-line">
-            {items.map(({ file: f, path }) => {
-              const badge = visibilityBadge(f.customerVisible);
-              const kind = fileKind(f.mimeType);
-              const url = thumb.get(path);
-              return (
-                <li key={f.id} className="space-y-3 py-4 text-sm">
-                 {kind === 'image' && url ? (
-                    <ImageLightbox src={url} alt={f.fileName} downloadHref={`/dashboard/attachments/${f.id}/download`} showPreviewButton />
-                  ) : null}
-                  <div className="min-w-0">
-                    <p className="flex items-start gap-2 break-words font-semibold text-navy"><FileText size={16} className="mt-1 shrink-0" aria-hidden="true" /> <span className="min-w-0 break-words">{f.fileName}</span></p>
-                    <p className="text-xs text-muted">{typeLabel(f.mimeType)}, {formatBytes(f.sizeBytes)}, added {formatDateTime(f.createdAt, profile.timezone)}</p>
-                    <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${badge.tone === 'visible' ? 'bg-ok-bg text-ok' : 'bg-page text-muted'}`}>
-                      {badge.tone === 'visible' ? <Eye size={12} aria-hidden="true" /> : <EyeOff size={12} aria-hidden="true" />} {badge.text}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                  {kind === 'pdf' || (kind === 'image' && !url) ? <a href={`/dashboard/attachments/${f.id}/download?inline=1`}target="_blank" rel="noopener noreferrer" className="btn-secondary"><Eye size={16} aria-hidden="true" /> Preview</a> : null}
-                    <a href={`/dashboard/attachments/${f.id}/download`} className="btn-secondary"><Download size={16} aria-hidden="true" /> Download</a>
-                    <form action={changeVisibilityFormAction}>
-                      <input type="hidden" name="attachment_id" value={f.id} />
-                      <input type="hidden" name="agreement_id" value={params.id} />
-                      <input type="hidden" name="make_visible" value={f.customerVisible ? 'false' : 'true'} />
-                      <button type="submit" className="btn-secondary">{f.customerVisible ? <><EyeOff size={16} aria-hidden="true" /> Make private</> : <><Eye size={16} aria-hidden="true" /> Show to customer</>}</button>
-                    </form>
-                  </div>
-                  <details className="rounded-xl border border-line px-3 py-2">
-                    <summary className="flex cursor-pointer items-center gap-2 font-semibold text-navy"><Pencil size={14} aria-hidden="true" /> Rename</summary>
-                    <form action={renameAttachmentFormAction} className="mt-2 space-y-2">
-                      <input type="hidden" name="attachment_id" value={f.id} />
-                      <input type="hidden" name="agreement_id" value={params.id} />
-                      <label htmlFor={`rename-${f.id}`} className="label">New file name</label>
-                      <input id={`rename-${f.id}`} name="file_name" defaultValue={f.fileName} maxLength={150} required className="input" />
-                      <button type="submit" className="btn-primary w-full sm:w-auto">Save name</button>
-                    </form>
-                  </details>
-                  <details className="rounded-xl border border-line px-3 py-2">
-                    <summary className="cursor-pointer font-semibold text-bad">Delete</summary>
-                    <form action={deleteAttachmentAction} className="mt-2 space-y-2">
-                      <input type="hidden" name="attachment_id" value={f.id} />
-                      <input type="hidden" name="agreement_id" value={params.id} />
-                      <p className="text-xs text-muted">This permanently removes the file. Approval records that already listed it are kept.</p>
-                      <SubmitButton variant="danger" pendingText="Deleting..." className="w-full"><Trash2 size={16} aria-hidden="true" /> Delete file</SubmitButton>
-                    </form>
-                  </details>
-                </li>
-              );
-            })}
+      <section aria-label="Files">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xl font-bold">Your attachments</h2>
+          <span className="rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">{files.length} {files.length === 1 ? 'file' : 'files'}</span>
+        </div>
+        {files.length === 0 ? <p className="card mt-3 text-sm text-muted">No files yet.</p> : (
+          <ul className="mt-3 space-y-4">
+            {items.map(({ file: f, path }) => (
+              <AttachmentCard key={f.id} id={f.id} agreementId={params.id} fileName={f.fileName} mimeType={f.mimeType} sizeBytes={f.sizeBytes}
+                createdAt={f.createdAt} customerVisible={f.customerVisible} thumbUrl={thumb.get(path) ?? null} />
+            ))}
           </ul>
         )}
       </section>
