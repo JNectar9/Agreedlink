@@ -83,7 +83,7 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
             <p className="mt-2 text-sm text-ink">
               Pay by debit or credit card on Paystack&apos;s secure page, including international Visa and Mastercard where your card issuer allows. Your plan activates once Paystack confirms the payment.
             </p>
-            <p className="mt-2 text-xs text-muted">Card checkout is charged in Nigerian naira (NGN). The dollar prices are a reference, and the naira amounts are not exact currency conversions.</p>
+            <p className="mt-2 text-xs text-muted">Card checkout is charged in Nigerian naira (NGN): Pro is {nairaShort(ngnMinor.pro)} and Premium is {nairaShort(ngnMinor.premium)} per month. The dollar prices are a reference, and the naira amounts are not exact currency conversions.</p>
           </div>
         ) : null}
         <div className="card">
@@ -91,7 +91,7 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
           <p className="mt-2 text-sm text-ink">
             Pay by bank transfer in Naira to the Zenith account shown on the Billing page. Pro is {nairaShort(ngnMinor.pro)}, Premium is {nairaShort(ngnMinor.premium)}. Send your payment reference. Admin verifies and activates your plan. Nothing changes until it is approved.
           </p>
-          <p className="mt-2 text-xs text-muted">Payment instructions are shown to signed-in customers on the Billing page.</p>
+          <p className="mt-2 text-xs text-muted">Bank transfer instructions are shown to you on the Billing page when you request a plan.</p>
         </div>
       </div>
     </div>
