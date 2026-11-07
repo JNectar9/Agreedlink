@@ -43,8 +43,8 @@ export function comingSoonFeatures(id: PlanId): string[] {
 
 /** The steps shown on both pages. Activation is manual, so nothing here promises instant or automatic access. */
 export const ACTIVATION_STEPS = [
-  'Pay by bank transfer using the payment instructions.',
-  'Send a payment request with your payment reference or transfer ID.',
+  'Pay by bank transfer using the payment instructions. Write your AgreedLink payment reference in the transfer description.',
+  'Send a payment request with your bank transfer transaction ID.',
   'An administrator checks the payment and activates your plan. Your plan does not change until they approve your request.'
 ];
 
