@@ -26,7 +26,7 @@ export function DashboardNav({ unread, variant }: { unread: number; variant: 'si
   if (variant === 'bottom') {
     const list = [...items.filter((i) => i.bottom), mobileProfile];
     return (
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Dashboard">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Dashboard">
         {list.map(({ href, short, Icon, badge }) => (
           <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
             className={`relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium ${active(href) ? 'text-brand' : 'text-muted'}`}>
