@@ -61,7 +61,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           <p className="text-sm font-semibold text-navy">Platform statistics <span className="font-normal text-muted">(real counts, visible only to you)</span></p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <StatCard label="Total users" value={owner.users} Icon={Users} tone="bg-white text-brand" />
-            <StatCard label="Paid subscribers" value={owner.subscribers} Icon={CreditCard} tone="bg-white text-ok" hint="Billing is not connected yet" />
+            <StatCard label="Paid subscribers" value={owner.subscribers} Icon={CreditCard} tone="bg-white text-ok" hint="Not counted yet" />
             <div className="col-span-2 lg:col-span-1"><StatCard label="Agreements created (all users)" value={owner.agreements} Icon={FileText} tone="bg-white text-navy" /></div>
           </div>
           <div className="card !p-4">
@@ -103,16 +103,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
               {[
                 { href: '/dashboard/agreements/new', title: 'Create new agreement', sub: 'Start a new agreement', Icon: PlusCircle, primary: true },
                 { href: '/dashboard/templates', title: 'Use a template', sub: 'Start from ready-made text', Icon: LayoutTemplate },
-                { href: '/dashboard/clients', title: 'View clients', sub: 'See agreements by client', Icon: Users },
+                { href: '/dashboard/clients', title: 'View clients', sub: 'See agreements by customer', Icon: Users },
                 { href: '/contact', title: 'Help and support', sub: 'Email or WhatsApp JNectar', Icon: LifeBuoy }
               ].map(({ href, title, sub, Icon, primary }) => (
                 <li key={href}>
                   <Link href={href} className={`flex min-h-[48px] items-center gap-3 rounded-xl p-2 ${primary ? 'bg-brand text-white hover:bg-brand-hover' : 'hover:bg-brand-soft'}`}>
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${primary ? 'bg-white/20' : 'bg-brand-soft text-brand'}`}><Icon size={18} aria-hidden="true" /></span>
-                    <span className="min-w-0">
-                      <span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span>
-                      <span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span>
-                    </span>
+                    <span className="min-w-0"><span className={`block truncate font-semibold ${primary ? '' : 'text-navy'}`}>{title}</span><span className={`block truncate text-xs ${primary ? 'text-blue-100' : 'text-muted'}`}>{sub}</span></span>
                   </Link>
                 </li>
               ))}
@@ -131,7 +128,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           <section className="rounded-2xl bg-brand p-5 text-white shadow-[0_8px_30px_rgba(23,105,255,0.3)]" aria-label="Upgrade">
             <Sparkles size={26} aria-hidden="true" />
             <h2 className="mt-2 text-lg !text-white">Need more room?</h2>
-            <p className="mt-1 text-sm text-blue-100">Pro allows 50 active agreements and Premium 200. Online payment is not available yet, and nobody is charged today.</p>
+            <p className="mt-1 text-sm text-blue-100">Pro allows 50 active agreements and Premium allows 200. You can pay by card through Paystack or by bank transfer on the Billing page. A plan is activated only after the payment is confirmed.</p>
             <Link href="/dashboard/billing" className="btn mt-3 w-full bg-white text-navy hover:bg-brand-soft">View plans</Link>
           </section>
         </div>
