@@ -17,7 +17,7 @@ type Props = {
 export function PaystackCheckout({ ngnPrices, usdPrices, preselect, blockedByManual, activePaystackPlan }: Props) {
   const disabled = blockedByManual;
   return (
-    <section id="card" aria-label="Pay by card" className="card space-y-3">
+    <section id="card" aria-label="Pay by card" className="card scroll-mt-20 space-y-3">
       <h2 className="flex items-center gap-2 text-lg"><CreditCard size={18} aria-hidden="true" /> Pay by card (Paystack)</h2>
       <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">
         Card checkout is charged in Nigerian naira (NGN). The dollar prices on this page are a reference, and the naira amounts are not exact currency conversions.
