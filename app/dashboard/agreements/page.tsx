@@ -45,9 +45,18 @@ export default async function AgreementsPage({ searchParams }: { searchParams: {
       {visible.length === 0 ? (
         <div className="card text-center">
           <FilePlus2 className="mx-auto text-brand" size={36} aria-hidden="true" />
-          <p className="mt-3 font-semibold text-navy">{agreements.length === 0 ? 'No agreements yet' : 'No agreements match this view'}</p>
-          <p className="mt-1 text-sm text-muted">{agreements.length === 0 ? 'Create your first agreement and send the approval link to your customer.' : 'Try another filter or search.'}</p>
-          {agreements.length === 0 ? <Link href="/dashboard/agreements/new" className="btn-primary mt-4">Create your first agreement</Link> : null}
+          {agreements.length === 0 ? (
+            <>
+              <p className="mt-3 font-semibold text-navy">No agreements yet</p>
+              <p className="mt-1 text-sm text-muted">Create your first agreement and send the approval link to your customer.</p>
+              <Link href="/dashboard/agreements/new" className="btn-primary mt-4">Create your first agreement</Link>
+            </>
+          ) : (
+            <>
+              <p className="mt-3 font-semibold text-navy">No agreements match this filter.</p>
+              <p className="mt-1 text-sm text-muted">Try another filter or clear the search.</p>
+            </>
+          )}
         </div>
       ) : (
         <ul className="space-y-3">{visible.map((a) => (<li key={a.id}><AgreementRow a={a} timeZone={profile.timezone} /></li>))}</ul>
