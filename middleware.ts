@@ -1,30 +1,24 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { hasSupabaseSessionCookie, isProtectedPath } from '@/lib/session-hint';
 
-/**
- * Keeps the Supabase sign-in alive on every page and keeps signed-out visitors out of /dashboard and /portal.
- *
- * Why it also runs on public pages: Supabase renews the sign-in cookie only here, because a page cannot write cookies.
- * If a signed-in person opened a public page (like /pricing) after their short-lived token expired, the page would use up
- * their one-time refresh token without saving the new one, and the next visit to /dashboard would sign them out.
- * Public pages never redirect: a visitor with no sign-in cookie is let straight through without any Supabase call.
- */
+// Keeps the Supabase session fresh and keeps signed-out visitors out of /dashboard and /portal.
+// The marketing pages in the matcher below only REFRESH the session. They never redirect and never sign anyone out,
+// so a signed-in person who opens the home page or Pricing is still signed in when they come back to the dashboard.
+const GUARDED = ['/dashboard', '/portal'];
+
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const guarded = GUARDED.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const protectedPath = isProtectedPath(request.nextUrl.pathname);
 
   const toSignIn = () => {
     const target = request.nextUrl.clone();
-    const wanted = request.nextUrl.pathname;
     target.pathname = '/signin';
-    target.search = wanted === '/dashboard' ? '' : `?next=${encodeURIComponent(wanted)}`;
+    target.search = pathname === '/dashboard' ? '' : `?next=${encodeURIComponent(pathname)}`;
     return NextResponse.redirect(target);
   };
-
-  if (!url || !key) return protectedPath ? toSignIn() : NextResponse.next();
-  if (!protectedPath && !hasSupabaseSessionCookie(request.cookies.getAll().map((c) => c.name))) return NextResponse.next();
+  if (!url || !key) return guarded ? toSignIn() : NextResponse.next();
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
@@ -38,19 +32,23 @@ export async function middleware(request: NextRequest) {
     }
   });
 
-  try {
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
-    if (!user && protectedPath) return toSignIn();
-  } catch {
-    // Supabase could not be reached. Protected pages stay closed. Public pages still open.
-    if (protectedPath) return toSignIn();
+  if (!guarded) {
+    // Public page: refresh the session if there is one, and always let the page load.
+    try {
+      await supabase.auth.getUser();
+    } catch {
+      // A slow or failed refresh must never block a public page.
+    }
+    return response;
   }
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return toSignIn();
   return response;
 }
 
-// Everything except static files, images, the payment webhook and other API routes, and the sign-in callback.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|api/|auth/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml|woff2?)$).*)']
+  matcher: ['/', '/pricing', '/about', '/contact', '/privacy', '/terms', '/dashboard/:path*', '/portal/:path*']
 };
