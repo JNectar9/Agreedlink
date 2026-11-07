@@ -3,8 +3,7 @@ import { Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
 import { PLAN_CONFIG } from '@/lib/plans';
 import { PricingPlans } from '@/components/PricingPlans';
-import { ACTIVATION_STEPS } from '@/lib/pricing-display';
-import { nairaShort, ngnPricesFromConfig } from '@/lib/pricing-format';
+import { ACTIVATION_NOTE, ACTIVATION_STEPS } from '@/lib/pricing-display';
 import { SITE, buildWhatsAppLink, isValidWhatsAppNumber, toWhatsAppDigits } from '@/lib/site';
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
@@ -53,7 +52,6 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
   const setupError = subRes.error ?? cfgRes.error ?? null;
   const ready = Boolean(sub && cfg && !setupError);
   const showCard = ready && pcfg?.paystack_enabled === true && Boolean(pcfg.ngn_prices);
-  const ngn = ngnPricesFromConfig(cfgRes.data);
 
   const tz = profile.timezone;
   const active = agreements.filter((a) => ACTIVE_STATUSES.includes(a.status)).length;
@@ -95,9 +93,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stateCls}`}>{stateLabel}</span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">
-              {planId === 'free' ? '$0/month' : <>{nairaShort(planId === 'pro' ? ngn.pro : ngn.premium)}/month <span className="font-normal text-muted">({usdShort(price(planId))} reference)</span></>}
-            </dd></div>
+          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">{usdShort(price(planId))}/month</dd></div>
           <div>
             <dt className="text-muted">{sub?.current ? 'Paid access until' : 'Access until'}</dt>
             <dd className="font-semibold text-navy">
@@ -106,7 +102,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           </div>
           <div>
             <dt className="text-muted">Type</dt>
-            <dd className="font-semibold text-navy">{sub?.current ? (sub.current.kind === 'complimentary' ? 'Complimentary' : 'Paid by transfer') : cardPlan ? 'Paid by card (Paystack)' : planId === 'free' ? 'Free' : 'Other'}</dd>
+            <dd className="font-semibold text-navy">{sub?.current ? (sub.current.kind === 'complimentary' ? 'Complimentary' : 'Paid by bank transfer') : cardPlan ? 'Paid by card (Paystack)' : planId === 'free' ? 'Free' : 'Other'}</dd>
           </div>
         </dl>
         {sub?.state === 'expired' && sub.last_expired_at ? (
@@ -117,25 +113,23 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={activeLimit} aria-valuenow={Math.min(active, activeLimit)} aria-label="Active agreements used">
           <div className={`h-full rounded-full ${over ? 'bg-bad' : 'bg-brand'}`} style={{ width: `${Math.min(100, (active / Math.max(1, activeLimit)) * 100)}%` }} />
         </div>
-        <p className="mt-2 text-xs text-muted">Active means draft, awaiting approval, or approved. Completed, declined, expired and cancelled agreements are kept and do not count. Saved templates allowed on this plan: {sub?.limits.saved_templates ?? '-'}.</p>
+        <p className="mt-2 text-xs text-muted">Active agreements are drafts, agreements awaiting approval, and approved agreements. Completed, declined, expired and cancelled agreements stay in your agreement history but do not count towards the active agreement limit. Saved templates allowed on this plan: {sub?.limits.saved_templates ?? '-'}.</p>
         {over ? <p role="alert" className="mt-3 text-sm text-bad">You have more active agreements than this plan allows. Nothing was deleted. You cannot create new agreements until you are under the limit.</p> : null}
 
         {sub?.latest_request?.status === 'pending' ? (
-          <p role="status" className="mt-4 rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your {planLabel(sub.latest_request.plan)} request is waiting for review. Your plan changes once it is approved.</p>
+          <p role="status" className="mt-4 rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your {planLabel(sub.latest_request.plan)} bank transfer request is waiting for review. Your plan is activated once an administrator approves it.</p>
         ) : null}
       </section>
 
       <section aria-label="Plans" className="space-y-3">
         <div>
           <h2 className="text-lg">Plans</h2>
-          <p className="text-sm text-muted">Free is $0. Pro is {nairaShort(ngn.pro)} per month and Premium is {nairaShort(ngn.premium)} per month, with USD reference prices of {usdShort(price('pro'))} and {usdShort(price('premium'))}. Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
+          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} per month and Premium is {usdShort(price('premium'))} per month. These US dollar prices are reference prices.{showCard && pcfg?.ngn_prices ? ` Card checkout is charged in Nigerian naira: Pro is ${formatNgn(pcfg.ngn_prices.pro)} per month and Premium is ${formatNgn(pcfg.ngn_prices.premium)} per month. The naira amounts are the actual card checkout prices and are not exact conversions of the dollar prices.` : ''} Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
         </div>
         <PricingPlans
           mode="billing"
           currentPlan={planId}
           prices={{ free: price('free'), pro: price('pro'), premium: price('premium') }}
-          ngnPrices={ngn}
-          cardEnabled={showCard}
           limits={{ free: cfg?.limits?.free?.active_agreements, pro: cfg?.limits?.pro?.active_agreements, premium: cfg?.limits?.premium?.active_agreements }}
         />
         <p className="text-xs text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
@@ -151,18 +145,10 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         />
       ) : null}
 
-      <section id="request" aria-label="Pay and request a plan" className="grid gap-4 lg:grid-cols-2">
+      <section id="request" aria-label="Pay and request a plan" className="grid scroll-mt-20 gap-4 lg:grid-cols-2">
         <div className="card space-y-3">
-          <h2 className="text-lg">How to pay</h2>
-          <div className="space-y-2 rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">
-            <p className="font-semibold">{showCard ? 'You have 2 ways to pay:' : 'How to pay:'}</p>
-            {showCard ? (
-              <p><strong>A) Pay by card (Paystack).</strong> Your plan activates automatically once Paystack confirms the payment. Charged in naira: Pro {nairaShort(ngn.pro)}, Premium {nairaShort(ngn.premium)}.</p>
-            ) : null}
-            <p>
-              <strong>{showCard ? 'B) ' : ''}Pay by bank transfer in naira</strong> to the Zenith account shown on this page. Pro is {nairaShort(ngn.pro)}, Premium is {nairaShort(ngn.premium)}. Send your payment reference. Admin verifies and activates your plan. Nothing changes until it is approved.
-            </p>
-          </div>
+          <h2 className="text-lg">How to pay by bank transfer</h2>
+          <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">{ACTIVATION_NOTE}</p>
           {instructions ? (
             <p className="whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{instructions}</p>
           ) : (
@@ -181,7 +167,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         </div>
 
         <form action={submitSubscriptionRequestAction} className="card space-y-4">
-          <h2 className="text-lg">Request a plan</h2>
+          <h2 className="text-lg">Request a plan (bank transfer)</h2>
           {hasPending ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">You already have a request waiting for review. You can send another once it has been decided.</p> : null}
           {!hasPending && ready && !instructions ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Requests open once payment instructions are added. Please contact support.</p> : null}
           {sub?.current ? <p className="text-xs text-muted">You have an active {planLabel(sub.current.plan)} plan. Requesting the same plan adds time after it ends. To switch to a different plan, contact support first.</p> : null}
@@ -189,8 +175,8 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
             <div>
               <label htmlFor="plan" className="label">Plan</label>
               <select id="plan" name="plan" defaultValue={preselect} className="input">
-                <option value="pro">Pro ({nairaShort(ngn.pro)}/month)</option>
-                <option value="premium">Premium ({nairaShort(ngn.premium)}/month)</option>
+                <option value="pro">Pro ({usdShort(price('pro'))}/month)</option>
+                <option value="premium">Premium ({usdShort(price('premium'))}/month)</option>
               </select>
             </div>
             <div>
@@ -198,7 +184,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <select id="months" name="months" defaultValue="1" className="input">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} month{m === 1 ? '' : 's'}</option>)}
               </select>
-              <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {nairaShort(ngn.pro * 3)}.</p>
+              <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {usd(price('pro') * 3)}.</p>
             </div>
             <div>
               <label htmlFor="payment_reference" className="label">Payment reference or transfer ID</label>
