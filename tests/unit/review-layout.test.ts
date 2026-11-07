@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { PILL_CLASS, agreementPill, kindLabel, reviewSubtitle, splitDeliverables, uploadHint } from '@/lib/review-layout';
+import { formatMinorSafe } from '@/lib/money';
+import { PILL_CLASS, agreementPill, compactMoney, kindLabel, reviewSubtitle, splitDeliverables, uploadHint } from '@/lib/review-layout';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
@@ -25,6 +26,17 @@ describe('layout helpers', () => {
     expect(kindLabel('other', 'Word document')).toBe('Word document');
     expect(reviewSubtitle(2)).toContain('attached files');
     expect(reviewSubtitle(0)).not.toContain('attached files');
+  });
+  it('drops .00 on whole amounts only, as in the design, and never rounds real cents away', () => {
+    expect(compactMoney(5000000, 'NGN')).toBe(formatMinorSafe(5000000, 'NGN').replace('.00', ''));
+    expect(compactMoney(5000000, 'NGN')).toContain('50,000');
+    expect(compactMoney(5000000, 'NGN')).not.toContain('.00');
+    expect(compactMoney(5000050, 'NGN')).toBe(formatMinorSafe(5000050, 'NGN'));
+    expect(compactMoney(5000050, 'NGN')).toContain('50,000.50');
+    expect(compactMoney(900, 'USD')).toContain('9');
+    expect(compactMoney(900, 'USD')).not.toContain('.00');
+    expect(compactMoney(950, 'USD')).toContain('9.50');
+    expect(compactMoney(500, 'ZZZ')).toContain('500');
   });
   it('lists the file types that are really allowed, with the real size limit', () => {
     expect(uploadHint(10 * 1024 * 1024)).toContain('Max 10 MB');
@@ -92,7 +104,14 @@ describe('customer approval page keeps every existing function', () => {
     expect(files).toContain('Shared with you');
     expect(files).toContain('View full size file');
   });
+  it('matches the design details: one card for project and deliverables, filled green ticks, no .00 on whole prices', () => {
+    expect(page.indexOf('id="work-h"')).toBeGreaterThan(page.indexOf('id="project-info-h"'));
+    expect(page.indexOf('id="work-h"')).toBeLessThan(page.indexOf('</section>'));
+    expect(page).toContain('rounded-full bg-ok text-white');
+    expect(page).toContain('compactMoney(t.amount_minor, t.currency)');
+    expect(page).toContain('Please confirm whether you agree with these details.');
+  });
   it('still shows every term the customer agrees to', () => {
-    for (const s of ['t.description', 't.included_revisions', 'pricingLabel(t)', 't.revision_definition', 't.excluded_work', 't.payment_terms_text', 'money(t.amount_minor)', 'formatPlainDate(t.delivery_date)']) expect(page).toContain(s);
+    for (const s of ['t.description', 't.included_revisions', 'pricingLabel(t)', 't.revision_definition', 't.excluded_work', 't.payment_terms_text', 'formatPlainDate(t.delivery_date)']) expect(page).toContain(s);
   });
 });
