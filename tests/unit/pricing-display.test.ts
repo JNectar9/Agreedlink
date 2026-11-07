@@ -39,7 +39,7 @@ describe('available versus coming soon', () => {
     for (const id of PLAN_ORDER) {
       expect(comingSoonFeatures(id)).toEqual(PLAN_CONFIG[id].features.filter((f) => !f.live).map((f) => f.text));
     }
-    expect(comingSoonFeatures('pro')).toContain('Client invitations by email');
+    expect(comingSoonFeatures('pro')).toContain('Customer invitations by email');
     expect(comingSoonFeatures('premium')).toContain('Team collaboration and shared workspace');
   });
   it('lists saved templates as available now, and no longer as coming soon', () => {
@@ -53,11 +53,11 @@ describe('available versus coming soon', () => {
     expect(availableFeatures('pro')).toContain('Attachments up to 10 MB per file (100 MB in total)');
     expect(availableFeatures('premium')).toContain('Attachments up to 50 MB per file (250 MB in total)');
     expect(availableFeatures('premium')).toContain('Advanced reporting');
-    expect(comingSoonFeatures('pro')).toEqual(['Client invitations by email']);
+    expect(comingSoonFeatures('pro')).toEqual(['Customer invitations by email']);
     expect(comingSoonFeatures('premium')).toEqual(['Advanced templates and reusable workflows', 'Team collaboration and shared workspace']);
   });
   it('does not advertise planned features in the available lists', () => {
-    const planned = ['Client invitations', 'Team collaboration', 'Advanced templates'];
+    const planned = ['Customer invitations', 'Team collaboration', 'Advanced templates'];
     for (const id of PLAN_ORDER) for (const f of availableFeatures(id)) for (const word of planned) expect(f.toLowerCase().includes(word.toLowerCase()), `${id}: ${f}`).toBe(false);
   });
 });
@@ -66,26 +66,21 @@ describe('payment wording', () => {
   const sources: [string, string][] = [['pricing page', pricing], ['billing page', billing], ['plans component', plansUi], ['display data', display]];
   it('has no misleading "cannot be charged" warnings or Paystack / exchange-rate claims', () => {
     for (const [name, text] of sources) {
-      // Card payment is live on the Billing page; it must still not appear on the other pages until they are updated.
-      const banned = [/nobody can be charged/i, /cannot be charged/i, /not connected yet/i, /approximate/i, /exchange rate/i, /≈/];
-      if (name !== 'billing page') banned.push(/paystack/i);
-      for (const bad of banned) {
+      for (const bad of [/nobody can be charged/i, /cannot be charged/i, /not connected yet/i, /approximate/i, /exchange rate/i, /≈/]) {
         expect(bad.test(text), `${name} matches ${bad}`).toBe(false);
       }
     }
   });
   it('says activation is manual, by an administrator, after verification', () => {
     expect(ACTIVATION_NOTE).toContain('activated by an administrator after the payment is verified');
-    expect(ACTIVATION_NOTE).toContain('Automatic online payments are not available yet');
+    expect(ACTIVATION_NOTE).toContain('Card payments through Paystack activate your plan once Paystack confirms the payment');
     expect(ACTIVATION_STEPS.join(' ')).toContain('administrator');
     expect(pricing).toContain('ACTIVATION_NOTE');
-    // The Billing page now explains both ways to pay itself, so it no longer shows the manual-only note.
-    expect(billing).not.toContain('ACTIVATION_NOTE');
-    expect(billing).toContain('ACTIVATION_STEPS');
+    expect(billing).toContain('ACTIVATION_NOTE');
   });
   it('makes no claim that automatic payments or naira pricing exist', () => {
     expect(pricing).not.toMatch(/auto-?renew(s|al)? (is|are) (on|enabled|available)/i);
-    expect(pricing).toContain('Local-currency pricing is not available yet');
+    expect(pricing).toContain('Card checkout is charged in Nigerian naira (NGN) at a fixed naira price for each plan');
   });
 });
 
