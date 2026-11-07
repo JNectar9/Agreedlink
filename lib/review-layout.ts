@@ -1,4 +1,14 @@
 // Small pure helpers for the attachments page and the customer approval page layouts.
+import { currencyExponent, formatMinorSafe, isCurrencyCode } from './money';
+
+/** Whole amounts drop the trailing .00 (5,000,000 kobo shows as 50,000). Amounts with real cents keep them. Uses the same symbol rules as the rest of the app. */
+export function compactMoney(minor: number, currency: string): string {
+  const full = formatMinorSafe(minor, currency);
+  if (!isCurrencyCode(currency)) return full;
+  const exp = currencyExponent(currency);
+  if (exp === 0 || minor % 10 ** exp !== 0) return full;
+  return full.replace(new RegExp(`\\.${'0'.repeat(exp)}$`), '');
+}
 
 /** "- Logo\n2. Colours\n• Files" becomes ["Logo", "Colours", "Files"]. One paragraph stays one item. */
 export function splitDeliverables(text: string): string[] {
