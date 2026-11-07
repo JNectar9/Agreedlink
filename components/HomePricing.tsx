@@ -83,7 +83,7 @@ export function HomePricing({ pricing }: { pricing: PublicPricing }) {
             <p className="mt-2 text-sm text-ink">
               Pay by debit or credit card on Paystack&apos;s secure page, including international Visa and Mastercard where your card issuer allows. Your plan activates once Paystack confirms the payment.
             </p>
-            <p className="mt-2 text-xs text-muted">Card checkout is charged in Nigerian naira (NGN): Pro is {nairaShort(ngnMinor.pro)} and Premium is {nairaShort(ngnMinor.premium)} per month. The dollar prices are a reference, and the naira amounts are not exact currency conversions.</p>
+            <p className="mt-2 text-xs text-muted">Card checkout is charged in Nigerian naira (NGN): Pro is {nairaShort(ngnMinor.pro)} and Premium is {nairaShort(ngnMinor.premium)} per month. The {usdShort(usd('pro'))} and {usdShort(usd('premium'))} dollar prices are a US dollar reference only.</p>
           </div>
         ) : null}
         <div className="card">
