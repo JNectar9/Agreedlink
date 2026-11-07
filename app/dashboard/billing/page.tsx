@@ -9,6 +9,7 @@ import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { PaystackCheckout } from '@/components/PaystackCheckout';
+import { CopyReference } from '@/components/CopyReference';
 import { formatNgn, type PaystackBillingExtras, type PaystackConfigExtras } from '@/lib/paystack-checkout';
 import {
   isPaidPlan, planLabel, subscriptionErrorCopy, usd, usdShort,
@@ -33,12 +34,14 @@ function RequestBadge({ status }: { status: RequestStatus }) {
 
 export default async function BillingPage({ searchParams }: { searchParams: { plan?: string; error?: string; ok?: string } }) {
   const { supabase, user, profile } = await requireSession();
-  const [agreements, subRes, cfgRes, reqRes, adminRes] = await Promise.all([
+  const [agreements, subRes, cfgRes, reqRes, adminRes, refRowsRes] = await Promise.all([
     loadAgreements(supabase),
     supabase.rpc('my_subscription'),
     supabase.rpc('subscription_public_config'),
     supabase.from('subscription_requests').select(REQUEST_COLUMNS).order('created_at', { ascending: false }).limit(20),
-    supabase.rpc('is_admin')
+    supabase.rpc('is_admin'),
+    // Read separately so Billing keeps working even before the reference migration has been run.
+    supabase.from('subscription_requests').select('id, transfer_reference').order('created_at', { ascending: false }).limit(20)
   ]);
 
   const sub = (subRes.data ?? null) as MySubscription | null;
@@ -71,6 +74,18 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
   const stateLabel = sub?.state === 'active' ? 'Active' : sub?.state === 'expired' ? 'Expired' : 'Free plan';
   const stateCls = sub?.state === 'expired' ? 'bg-warn-bg text-warn' : 'bg-ok-bg text-ok';
   const canRequest = ready && instructions !== '' && !hasPending;
+
+  // The AgreedLink payment reference (AGL-YYYYMMDD-XXXXX). A pending request shows the reference it already uses.
+  // Otherwise the person gets their current unused reference, which the database creates once and never hands out twice.
+  const refByRequest = new Map(((refRowsRes.error ? [] : refRowsRes.data ?? []) as { id: string; transfer_reference: string | null }[]).map((r) => [r.id, r.transfer_reference]));
+  const pendingRequest = requests.find((r) => r.status === 'pending');
+  let transferRef: string | null = pendingRequest ? refByRequest.get(pendingRequest.id) ?? null : null;
+  let refUnavailable = false;
+  if (!pendingRequest && ready) {
+    const refRes = await supabase.rpc('get_my_transfer_reference');
+    if (refRes.error) refUnavailable = true;
+    else transferRef = (refRes.data as { reference?: string } | null)?.reference ?? null;
+  }
 
   return (
     <div className="max-w-5xl space-y-5">
@@ -149,6 +164,16 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         <div className="card space-y-3">
           <h2 className="text-lg">How to pay by bank transfer</h2>
           <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">{ACTIVATION_NOTE}</p>
+          {transferRef ? (
+            <div className="space-y-2 rounded-xl border-2 border-brand bg-white p-4">
+              <p className="text-sm font-semibold text-navy">Your payment reference</p>
+              <p className="break-all text-2xl font-bold tracking-wide text-navy" data-testid="transfer-reference">{transferRef}</p>
+              <CopyReference value={transferRef} />
+              <p className="text-xs text-muted">Write this exact reference in the description or narration of your bank transfer. It belongs only to this request and is never reused. If the instructions below mention an email address as the reference, use this reference instead.</p>
+            </div>
+          ) : refUnavailable ? (
+            <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your payment reference could not be created just now. Please refresh this page. If it keeps happening, contact support below.</p>
+          ) : null}
           {instructions ? (
             <p className="whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{instructions}</p>
           ) : (
@@ -168,6 +193,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
 
         <form action={submitSubscriptionRequestAction} className="card space-y-4">
           <h2 className="text-lg">Request a plan (bank transfer)</h2>
+          {transferRef ? <p className="rounded-xl bg-page p-3 text-sm text-ink">Payment reference for this request: <strong className="break-all text-navy">{transferRef}</strong></p> : null}
           {hasPending ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">You already have a request waiting for review. You can send another once it has been decided.</p> : null}
           {!hasPending && ready && !instructions ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Requests open once payment instructions are added. Please contact support.</p> : null}
           {sub?.current ? <p className="text-xs text-muted">You have an active {planLabel(sub.current.plan)} plan. Requesting the same plan adds time after it ends. To switch to a different plan, contact support first.</p> : null}
@@ -187,8 +213,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {usd(price('pro') * 3)}.</p>
             </div>
             <div>
-              <label htmlFor="payment_reference" className="label">Payment reference or transfer ID</label>
+              <label htmlFor="payment_reference" className="label">Bank transfer transaction ID</label>
               <input id="payment_reference" name="payment_reference" required minLength={3} maxLength={120} className="input" autoComplete="off" />
+              <p className="hint">Copy this from your bank receipt or transfer confirmation. It is different from your AgreedLink payment reference above.</p>
             </div>
             <div>
               <label htmlFor="customer_notes" className="label">Notes (optional)</label>
@@ -211,7 +238,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
                   <p className="font-semibold text-navy">{planLabel(r.requested_plan)}, {r.months} month{r.months === 1 ? '' : 's'}{r.expected_amount_minor != null ? ` - ${usd(r.expected_amount_minor)}` : ''}</p>
                   <RequestBadge status={r.status} />
                 </div>
-                <p className="text-xs text-muted">Sent {formatDateTime(r.created_at, tz)}{r.reviewed_at ? `. Decided ${formatDateTime(r.reviewed_at, tz)}` : ''}. Reference: {r.payment_reference || 'none'}</p>
+                <p className="text-xs text-muted">Sent {formatDateTime(r.created_at, tz)}{r.reviewed_at ? `. Decided ${formatDateTime(r.reviewed_at, tz)}` : ''}. {refByRequest.get(r.id) ? `Payment reference: ${refByRequest.get(r.id)}. ` : ''}Transaction ID: {r.payment_reference || 'none'}</p>
                 {r.status === 'rejected' && r.rejection_reason ? <p className="text-sm text-bad">Reason: {r.rejection_reason}</p> : null}
               </li>
             ))}
