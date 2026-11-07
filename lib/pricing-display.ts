@@ -43,12 +43,13 @@ export function comingSoonFeatures(id: PlanId): string[] {
 
 /** The steps shown on both pages. Activation is manual, so nothing here promises instant or automatic access. */
 export const ACTIVATION_STEPS = [
-  'Pay the plan price using the payment instructions.',
+  'Pay by bank transfer using the payment instructions.',
   'Send a payment request with your payment reference or transfer ID.',
-  'An administrator checks the payment and activates your plan. Nothing changes until they approve it.'
+  'An administrator checks the payment and activates your plan. Your plan does not change until they approve your request.'
 ];
 
 export const ACTIVATION_NOTE = [
-  'Subscriptions are activated by an administrator after the payment is verified.',
-  'Automatic online payments are not available yet, and prices are in US dollars only.'
+  'Card payments through Paystack activate your plan once Paystack confirms the payment.',
+  'Bank transfer subscriptions are activated by an administrator after the payment is verified.',
+  'Plan prices are shown in US dollars as a reference. Card checkout is charged in Nigerian naira.'
 ].join(' ');
