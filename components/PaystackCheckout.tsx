@@ -20,7 +20,7 @@ export function PaystackCheckout({ ngnPrices, usdPrices, preselect, blockedByMan
     <section id="card" aria-label="Pay by card" className="card scroll-mt-20 space-y-3">
       <h2 className="flex items-center gap-2 text-lg"><CreditCard size={18} aria-hidden="true" /> Pay by card (Paystack)</h2>
       <p className="rounded-xl border border-brand/20 bg-brand-soft p-3 text-sm text-navy">
-        Card checkout is charged in Nigerian naira (NGN). The dollar prices on this page are a reference, and the naira amounts are not exact currency conversions.
+        Card checkout is charged in Nigerian naira (NGN). You will pay {formatNgn(ngnPrices.pro)} for Pro or {formatNgn(ngnPrices.premium)} for Premium. The {usdShort(usdPrices.pro)} and {usdShort(usdPrices.premium)} are only a US dollar reference.
         Eligible debit and credit cards work, including international Visa and Mastercard where your card issuer allows. You pay on Paystack&apos;s secure page and your plan changes only after Paystack confirms the payment.
       </p>
       {blockedByManual ? (
