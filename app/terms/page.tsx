@@ -19,7 +19,7 @@ export default function TermsPage() {
         <li>Do not use the service for unlawful or abusive purposes.</li>
       </ul>
       <h2>Plans and limits</h2>
-      <p>The Free plan allows up to 3 active agreements at one time (draft, awaiting approval, or approved). Completed, declined, expired and cancelled agreements are kept and do not count. Pro ($9 per month) and Premium ($24 per month) are planned but not available to buy yet. Naira amounts shown are approximate. If a paid plan ends you return to Free and nothing is deleted. [Legal review needed: pricing, refunds, taxes, and changes to plans.]</p>
+      <p>The Free plan allows up to 3 active agreements at one time (draft, awaiting approval, or approved). Completed, declined, expired and cancelled agreements stay in your agreement history but do not count towards the active agreement limit. Pro ($9 per month) and Premium ($24 per month) are US dollar reference prices. Card checkout through Paystack is charged in Nigerian naira at a fixed price for each plan, and bank transfer is also supported. A plan is activated only after the payment is confirmed. If a paid plan ends you return to Free and nothing is deleted. [Legal review needed: pricing, refunds, taxes, and changes to plans.]</p>
       <h2>Availability and liability</h2>
       <p>The service is provided as is, and may change or be unavailable. [Legal review needed: limitation of liability, governing law, and dispute terms.]</p>
     </LegalPage>
