@@ -41,15 +41,10 @@ export function comingSoonFeatures(id: PlanId): string[] {
   return PLAN_CONFIG[id].features.filter((f) => !f.live).map((f) => f.text);
 }
 
-/** The steps shown on both pages. Activation is manual, so nothing here promises instant or automatic access. */
+/** Bank transfer steps shown on both pages. Activation is manual, so nothing here promises instant access. */
 export const ACTIVATION_STEPS = [
-  'Pay by bank transfer using the payment instructions. Write your AgreedLink payment reference in the transfer description.',
-  'Send a payment request with your bank transfer transaction ID.',
-  'An administrator checks the payment and activates your plan. Your plan does not change until they approve your request.'
+  'Pay by bank transfer and write your payment reference.',
+  'Send a request with your transaction ID.'
 ];
 
-export const ACTIVATION_NOTE = [
-  'Card payments through Paystack activate your plan once Paystack confirms the payment.',
-  'Bank transfer subscriptions are activated by an administrator after the payment is verified.',
-  'Plan prices are shown in US dollars as a reference. Card checkout is charged in Nigerian naira.'
-].join(' ');
+export const ACTIVATION_NOTE = 'Bank transfer plans are activated by an administrator after the payment is verified.';
