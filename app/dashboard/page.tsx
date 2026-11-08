@@ -13,6 +13,7 @@ import { ActivityChart } from '@/components/ActivityChart';
 import { AgreementRow } from '@/components/AgreementRow';
 import { SubmitButton } from '@/components/SubmitButton';
 import { markNotificationsReadAction } from './actions';
+import { CurrentPlanLine } from '@/components/CurrentPlanLine';
 
 export const metadata = { title: 'Dashboard' };
 
@@ -117,7 +118,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
           </section>
 
           <section className="card" aria-label="Subscription plan">
-            <h2 className="text-lg">Subscription plan</h2>
+            <div className="mt-2"><CurrentPlanLine /></div>
             <div className="mt-3 flex items-center justify-between gap-2">
               <p className="font-semibold text-navy">{plan.name} plan</p>
               <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-semibold text-ok">Active</span>
