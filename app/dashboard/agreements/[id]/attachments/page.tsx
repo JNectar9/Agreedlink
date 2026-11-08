@@ -8,6 +8,7 @@ import { VISIBILITY_NOTE, compareWithApproval, fileKind } from '@/lib/attachment
 import { PILL_CLASS, agreementPill } from '@/lib/review-layout';
 import { formatDateTime } from '@/lib/time';
 import { Notice } from '@/components/Notice';
+import { ClearNoticeParams } from '@/components/ClearNoticeParams';
 import { AttachmentUploader } from '@/components/AttachmentUploader';
 import { AttachmentCard } from '@/components/AttachmentCard';
 
@@ -53,6 +54,7 @@ export default async function AttachmentsPage({ params, searchParams }: { params
         <h1 className="text-3xl font-bold">Attachments</h1>
         <p className="mt-1 text-muted">Manage files attached to this agreement.</p>
       </div>
+      <ClearNoticeParams />
       <Notice error={searchParams.error} ok={searchParams.ok} />
       {setupError ? <Notice error={attachmentErrorCopy(setupError)} /> : null}
 
