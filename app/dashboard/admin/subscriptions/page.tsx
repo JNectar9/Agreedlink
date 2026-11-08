@@ -64,6 +64,10 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
   ]);
   const pendingAll = (pendingRes.data ?? []) as AdminRequest[];
   const requests = (status === 'pending' ? pendingAll : ((reqRes?.data ?? []) as AdminRequest[]));
+  // Generated bank transfer references (AGL-...). Looked up separately so this page keeps working before the migration is run.
+  const refIds = Array.from(new Set([...pendingAll, ...requests].map((r) => r.id)));
+  const refRes = refIds.length > 0 ? await supabase.rpc('admin_request_references', { p_ids: refIds }) : null;
+  const refs = ((refRes && !refRes.error ? refRes.data : null) ?? {}) as Record<string, string>;
   const stats = parseDashboard(dashRes.data);
   const statsMissing = dashRes.error?.code === 'PGRST202' || dashRes.error?.code === '42883';
   // Newest first for the compact panel.
@@ -169,7 +173,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   {pendingPanel.map((r) => (
                     <li key={r.id} className="space-y-2 py-3 text-sm">
                       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                        <div className="min-w-0"><p className="truncate font-medium text-navy">{r.email}</p><p className="text-xs text-muted">{formatDateTime(r.created_at, tz)}</p></div>
+                        <div className="min-w-0"><p className="truncate font-medium text-navy">{r.email}</p><p className="text-xs text-muted">{formatDateTime(r.created_at, tz)}</p>{refs[r.id] ? <p className="break-all text-xs font-semibold text-brand">{refs[r.id]}</p> : null}</div>
                         <div className="text-right"><p className="font-semibold text-navy">{r.expected_amount_minor != null ? usd(r.expected_amount_minor) : '-'}</p><p className="text-xs text-muted">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}</p></div>
                       </div>
                       <div className="flex gap-2">
@@ -187,7 +191,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
 
       <section id="settings" className="card scroll-mt-4" aria-label="Prices and payment instructions">
         <h2 className="text-lg">Prices and payment instructions</h2>
-        <p className="hint">Customers see these on their billing page. New prices apply to new requests only; requests already sent keep their price.</p>
+        <p className="hint">Subscribers see these on their Billing page. New prices apply to new requests only; requests already sent keep their price.</p>
         <form action={updateConfigAction} className="mt-4 space-y-4">
           <input type="hidden" name="back" value={here} />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -239,10 +243,11 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${BADGE[r.status]}`}>{r.status}</span>
             </div>
             <dl className="grid gap-1 text-xs text-muted sm:grid-cols-2">
-              <div>Reference: <span className="break-all text-ink">{r.payment_reference || 'none given'}</span></div>
+              <div className="sm:col-span-2">Payment reference (AgreedLink): <strong className="break-all text-base text-navy">{refs[r.id] ?? 'none (older request)'}</strong></div>
+              <div>Bank transaction ID: <span className="break-all text-ink">{r.payment_reference || 'none given'}</span></div>
               <div>Sent: {formatDateTime(r.created_at, tz)}</div>
               {r.reviewed_at ? <div>Decided: {formatDateTime(r.reviewed_at, tz)}</div> : null}
-              {r.customer_notes ? <div className="sm:col-span-2">Customer note: <span className="whitespace-pre-wrap text-ink">{r.customer_notes}</span></div> : null}
+              {r.customer_notes ? <div className="sm:col-span-2">Subscriber note: <span className="whitespace-pre-wrap text-ink">{r.customer_notes}</span></div> : null}
               {r.rejection_reason ? <div className="sm:col-span-2">Rejection reason: <span className="text-ink">{r.rejection_reason}</span></div> : null}
               {r.admin_notes ? <div className="sm:col-span-2">Admin note: <span className="text-ink">{r.admin_notes}</span></div> : null}
             </dl>
@@ -254,8 +259,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   <form action={approveRequestAction} className="mt-3 space-y-3">
                     <input type="hidden" name="back" value={here} />
                     <input type="hidden" name="request_id" value={r.id} />
-                    <p className="hint">Confirm you received the money first. Each payment reference can be used once.</p>
-                    <div><label htmlFor={`ref-${r.id}`} className="label">Payment reference</label><input id={`ref-${r.id}`} name="payment_reference" defaultValue={r.payment_reference} minLength={3} maxLength={120} required className="input" /></div>
+                    <p className="hint">Confirm you received the money first, and check the transfer shows the payment reference above. Each bank transaction ID can be used once.</p>
+                    <div><label htmlFor={`ref-${r.id}`} className="label">Bank transaction ID</label><input id={`ref-${r.id}`} name="payment_reference" defaultValue={r.payment_reference} minLength={3} maxLength={120} required className="input" /></div>
                     <div className="grid grid-cols-2 gap-3">
                       <div><label htmlFor={`amt-${r.id}`} className="label">Amount received (USD)</label><input id={`amt-${r.id}`} name="amount" inputMode="decimal" defaultValue={r.expected_amount_minor != null ? minorToInputString(r.expected_amount_minor, 'USD') : ''} className="input" /></div>
                       <div><label htmlFor={`mo-${r.id}`} className="label">Months</label><input id={`mo-${r.id}`} name="months" type="number" min={1} max={12} defaultValue={r.months} className="input" /></div>
@@ -269,25 +274,25 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   <form action={rejectRequestAction} className="mt-3 space-y-3">
                     <input type="hidden" name="back" value={here} />
                     <input type="hidden" name="request_id" value={r.id} />
-                    <div><label htmlFor={`why-${r.id}`} className="label">Reason (the customer will see this)</label><input id={`why-${r.id}`} name="reason" required minLength={3} maxLength={500} className="input" /></div>
+                    <div><label htmlFor={`why-${r.id}`} className="label">Reason (the subscriber will see this)</label><input id={`why-${r.id}`} name="reason" required minLength={3} maxLength={500} className="input" /></div>
                     <SubmitButton variant="danger" pendingText="Rejecting..." className="w-full">Reject request</SubmitButton>
                   </form>
                 </details>
               </div>
             ) : null}
-            <Link href={`${back(status, r.user_id, range)}#manage`} className="inline-block font-semibold text-brand">Manage this customer&apos;s subscription</Link>
+            <Link href={`${back(status, r.user_id, range)}#manage`} className="inline-block font-semibold text-brand">Manage this account&apos;s subscription</Link>
           </article>
         ))}
       </section>
 
-      <section id="manage" className="card scroll-mt-4 space-y-4" aria-label="Manage a customer subscription">
-        <h2 className="text-lg">Manage a customer subscription</h2>
+      <section id="manage" className="card scroll-mt-4 space-y-4" aria-label="Manage an account subscription">
+        <h2 className="text-lg">Manage an account subscription</h2>
         <form method="get" action={BASE} className="flex flex-wrap items-end gap-2">
           {status !== 'pending' ? <input type="hidden" name="status" value={status} /> : null}
           <div className="min-w-0 flex-1">
             <label htmlFor="user" className="label">Account ID</label>
             <input id="user" name="user" defaultValue={userId ?? ''} placeholder="Paste an account ID, or use a request above" className="input" autoComplete="off" />
-            <p className="hint">Customers can copy their account ID from the bottom of their billing page.</p>
+            <p className="hint">Subscribers can copy their account ID from the bottom of their Billing page.</p>
           </div>
           <button className="btn-secondary">Open</button>
         </form>
