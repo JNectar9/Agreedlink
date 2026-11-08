@@ -60,6 +60,8 @@ describe('attachments page keeps every existing function', () => {
     expect(action).toContain("rpc('set_attachment_visibility'");
     expect(action).toContain(".from('agreement_attachments').select('customer_visible')");
     expect(action).toContain('if (actual !== wanted)');
+    expect(action).toContain('${detail(readError)}');
+    expect(action).toContain('attachmentErrorCopy(error) + detail(error)');
     expect(action.indexOf('if (actual !== wanted)')).toBeLessThan(action.indexOf('return { ok: true'));
     expect(action).toContain("revalidatePath('/dashboard/agreements/[id]/attachments', 'page')");
     expect(action).not.toContain('createAdminClient');
