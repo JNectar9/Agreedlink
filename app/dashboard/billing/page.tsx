@@ -121,25 +121,25 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           </div>
         </dl>
         {sub?.state === 'expired' && sub.last_expired_at ? (
-          <p className="mt-3 text-sm text-warn">Your paid plan ended on {formatDateTime(sub.last_expired_at, tz)}. You are back on Free. Your agreements and records are kept.</p>
+          <p className="mt-3 text-sm text-warn">Your paid plan ended on {formatDateTime(sub.last_expired_at, tz)}. You are on Free. Your records are kept.</p>
         ) : null}
 
         <p className="mt-5 text-sm text-ink">Active agreements: <strong>{active}</strong> of {activeLimit}</p>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={activeLimit} aria-valuenow={Math.min(active, activeLimit)} aria-label="Active agreements used">
           <div className={`h-full rounded-full ${over ? 'bg-bad' : 'bg-brand'}`} style={{ width: `${Math.min(100, (active / Math.max(1, activeLimit)) * 100)}%` }} />
         </div>
-        <p className="mt-2 text-xs text-muted">Active agreements are drafts, agreements awaiting approval, and approved agreements. Completed, declined, expired and cancelled agreements stay in your agreement history but do not count towards the active agreement limit. Saved templates allowed on this plan: {sub?.limits.saved_templates ?? '-'}.</p>
-        {over ? <p role="alert" className="mt-3 text-sm text-bad">You have more active agreements than this plan allows. Nothing was deleted. You cannot create new agreements until you are under the limit.</p> : null}
+        <p className="mt-2 text-xs text-muted">Active agreements are drafts, awaiting approval or approved. Completed, declined, expired and cancelled agreements stay in your history and do not count. Saved templates: {sub?.limits.saved_templates ?? '-'}.</p>
+        {over ? <p role="alert" className="mt-3 text-sm text-bad">You are over this plan&apos;s limit. Nothing was deleted, but you cannot create new agreements until you are under it.</p> : null}
 
         {sub?.latest_request?.status === 'pending' ? (
-          <p role="status" className="mt-4 rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your {planLabel(sub.latest_request.plan)} bank transfer request is waiting for review. Your plan is activated once an administrator approves it.</p>
+          <p role="status" className="mt-4 rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your {planLabel(sub.latest_request.plan)} request is waiting for review.</p>
         ) : null}
       </section>
 
       <section aria-label="Plans" className="space-y-3">
         <div>
           <h2 className="text-lg">Plans</h2>
-          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} per month and Premium is {usdShort(price('premium'))} per month. These US dollar prices are reference prices.{showCard && pcfg?.ngn_prices ? ` Card checkout is charged in Nigerian naira: Pro is ${formatNgn(pcfg.ngn_prices.pro)} per month and Premium is ${formatNgn(pcfg.ngn_prices.premium)} per month. The naira amounts are the actual card checkout prices and are not exact conversions of the dollar prices.` : ''} Features under Available now work today. Features under Coming soon are planned and not built yet.</p>
+          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} and Premium is {usdShort(price('premium'))} per month. These are US dollar reference prices.</p>
         </div>
         <PricingPlans
           mode="billing"
@@ -147,7 +147,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           prices={{ free: price('free'), pro: price('pro'), premium: price('premium') }}
           limits={{ free: cfg?.limits?.free?.active_agreements, pro: cfg?.limits?.pro?.active_agreements, premium: cfg?.limits?.premium?.active_agreements }}
         />
-        <p className="text-xs text-muted">If a paid plan ends or is cancelled, you return to Free. Your agreements and records are never deleted. If you are above the Free limit you can keep viewing and finishing them, but you cannot create new ones until you are under the limit.</p>
+        <p className="text-xs text-muted">When a paid plan ends you return to Free. Nothing is deleted. Above the Free limit you can still view and finish agreements, but not create new ones.</p>
       </section>
 
       {showCard && pcfg?.ngn_prices ? (
@@ -169,15 +169,15 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <p className="text-sm font-semibold text-navy">Your payment reference</p>
               <p className="break-all text-2xl font-bold tracking-wide text-navy" data-testid="transfer-reference">{transferRef}</p>
               <CopyReference value={transferRef} />
-              <p className="text-xs text-muted">Write this exact reference in the description or narration of your bank transfer. It belongs only to this request and is never reused. If the instructions below mention an email address as the reference, use this reference instead.</p>
+              <p className="text-xs text-muted">Write this in your bank transfer description. Use it instead of any other reference below. It is never reused.</p>
             </div>
           ) : refUnavailable ? (
-            <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your payment reference could not be created just now. Please refresh this page. If it keeps happening, contact support below.</p>
+            <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Your payment reference could not be created. Refresh the page, or contact support.</p>
           ) : null}
           {instructions ? (
             <p className="whitespace-pre-wrap break-words rounded-xl bg-page p-4 text-sm text-ink">{instructions}</p>
           ) : (
-            <p className="rounded-xl bg-page p-4 text-sm text-muted">Payment instructions have not been added yet. Please contact support below and we will send them to you.</p>
+            <p className="rounded-xl bg-page p-4 text-sm text-muted">Bank details are not added yet. Please contact support.</p>
           )}
           <ol className="list-decimal space-y-1 pl-5 text-sm text-ink">
             {ACTIVATION_STEPS.map((step) => <li key={step}>{step}</li>)}
@@ -193,10 +193,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
 
         <form action={submitSubscriptionRequestAction} className="card space-y-4">
           <h2 className="text-lg">Request a plan (bank transfer)</h2>
-          {transferRef ? <p className="rounded-xl bg-page p-3 text-sm text-ink">Payment reference for this request: <strong className="break-all text-navy">{transferRef}</strong></p> : null}
-          {hasPending ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">You already have a request waiting for review. You can send another once it has been decided.</p> : null}
-          {!hasPending && ready && !instructions ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Requests open once payment instructions are added. Please contact support.</p> : null}
-          {sub?.current ? <p className="text-xs text-muted">You have an active {planLabel(sub.current.plan)} plan. Requesting the same plan adds time after it ends. To switch to a different plan, contact support first.</p> : null}
+          {hasPending ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">A request is already waiting for review.</p> : null}
+          {!hasPending && ready && !instructions ? <p role="status" className="rounded-lg border border-warn/30 bg-warn-bg p-3 text-sm text-warn">Requests open once bank details are added. Contact support.</p> : null}
+          {sub?.current ? <p className="text-xs text-muted">Requesting the same plan adds time after it ends. To switch plans, contact support.</p> : null}
           <fieldset disabled={!canRequest} className="space-y-4 disabled:opacity-60">
             <div>
               <label htmlFor="plan" className="label">Plan</label>
@@ -210,12 +209,12 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <select id="months" name="months" defaultValue="1" className="input">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} month{m === 1 ? '' : 's'}</option>)}
               </select>
-              <p className="hint">The total is the monthly price times the months. It is calculated by the server when you send the request, for example Pro for 3 months is {usd(price('pro') * 3)}.</p>
+              <p className="hint">Total = monthly price × months. Pro for 3 months is {usd(price('pro') * 3)}.</p>
             </div>
             <div>
               <label htmlFor="payment_reference" className="label">Bank transfer transaction ID</label>
               <input id="payment_reference" name="payment_reference" required minLength={3} maxLength={120} className="input" autoComplete="off" />
-              <p className="hint">Copy this from your bank receipt or transfer confirmation. It is different from your AgreedLink payment reference above.</p>
+              <p className="hint">From your bank receipt. Not the same as your payment reference.</p>
             </div>
             <div>
               <label htmlFor="customer_notes" className="label">Notes (optional)</label>
@@ -229,7 +228,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       <section className="card" aria-label="Your requests">
         <h2 className="text-lg">Your requests</h2>
         {requests.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">No requests yet. After you pay, send a request above and its status will appear here.</p>
+          <p className="mt-2 text-sm text-muted">No requests yet.</p>
         ) : (
           <ul className="mt-3 divide-y divide-line">
             {requests.map((r) => (
@@ -282,7 +281,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
         </section>
       ) : null}
 
-      <p className="text-sm text-muted">Questions about plans? <Link href="/contact" className="font-semibold text-brand">Contact {SITE.company}</Link>. Your account ID, if support asks for it: <code className="break-all text-xs">{user.id}</code></p>
+      <p className="text-sm text-muted">Need help? <Link href="/contact" className="font-semibold text-brand">Contact {SITE.company}</Link>. Account ID: <code className="break-all text-xs">{user.id}</code></p>
     </div>
   );
 }
