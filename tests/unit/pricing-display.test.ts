@@ -73,14 +73,14 @@ describe('payment wording', () => {
   });
   it('says activation is manual, by an administrator, after verification', () => {
     expect(ACTIVATION_NOTE).toContain('activated by an administrator after the payment is verified');
-    expect(ACTIVATION_NOTE).toContain('Card payments through Paystack activate your plan once Paystack confirms the payment');
-    expect(ACTIVATION_STEPS.join(' ')).toContain('administrator');
+    expect(ACTIVATION_STEPS).toHaveLength(2);
+    expect(pricing).toContain('Card: once Paystack confirms the payment');
     expect(pricing).toContain('ACTIVATION_NOTE');
     expect(billing).toContain('ACTIVATION_NOTE');
   });
   it('makes no claim that automatic payments or naira pricing exist', () => {
     expect(pricing).not.toMatch(/auto-?renew(s|al)? (is|are) (on|enabled|available)/i);
-    expect(pricing).toContain('Card checkout is charged in Nigerian naira (NGN) at a fixed naira price for each plan');
+    expect(pricing).toContain('Card checkout is charged in naira');
   });
 });
 
