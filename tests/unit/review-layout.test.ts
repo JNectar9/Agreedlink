@@ -53,7 +53,46 @@ describe('attachments page keeps every existing function', () => {
     for (const s of ["rpc('my_attachment_limits')", "from('agreement_attachments')", "from('approval_file_records')", "from('approval_attachment_snapshots')", 'createSignedUrls', 'See plans on Billing', 'Files recorded at approval']) expect(page).toContain(s);
   });
   it('card keeps preview, download, make private, rename and delete using the same actions', () => {
-    for (const s of ['changeVisibilityFormAction', 'renameAttachmentFormAction', 'deleteAttachmentAction', '/download?inline=1', 'Make private', 'Show to customer', 'Rename', 'Delete']) expect(card).toContain(s);
+    for (const s of ['toggleVisibilityAction', 'renameAttachmentFormAction', 'deleteAttachmentAction', '/download?inline=1', 'Make private', 'Make visible', 'Rename', 'Delete']) expect(card).toContain(s);
+  });
+  it('make private only reports success after the database really holds the new value', () => {
+    const action = read('app/dashboard/attachments/visibility-actions.ts');
+    expect(action).toContain("rpc('set_attachment_visibility'");
+    expect(action).toContain(".from('agreement_attachments').select('customer_visible')");
+    expect(action).toContain('if (actual !== wanted)');
+    expect(action.indexOf('if (actual !== wanted)')).toBeLessThan(action.indexOf('return { ok: true'));
+    expect(action).toContain("revalidatePath('/dashboard/agreements/[id]/attachments', 'page')");
+    expect(action).not.toContain('createAdminClient');
+  });
+  it('the badge, button and banner all read the fresh server data, never a local copy', () => {
+    expect(card).toContain('const isPrivate = !p.customerVisible');
+    expect(card).not.toContain('setVisible');
+    expect(card).not.toContain('useState(p.customerVisible)');
+    expect(card).not.toContain('changeVisibilityFormAction');
+    expect(card).not.toContain('name="make_visible"');
+    expect(card).toContain('router.refresh()');
+    expect(card.indexOf('router.refresh()')).toBeGreaterThan(card.indexOf('setConfirmed(result.customerVisible)'));
+  });
+  it('the banner appears only after fresh data agrees, with the exact texts', () => {
+    expect(card).toContain("const PRIVATE_NOTE = 'This file is now private. Your customer cannot see it.'");
+    expect(card).toContain("const VISIBLE_NOTE = 'This file is now visible. Your customer can see and download it.'");
+    expect(card).toContain('if (confirmed !== null && p.customerVisible === confirmed)');
+    expect(card).not.toContain('localStorage');
+    expect(card).not.toContain('sessionStorage');
+  });
+  it('private shows a grey badge and Make visible, visible shows a green badge and Make private', () => {
+    expect(card).toContain("isPrivate ? 'bg-slate-100 text-slate-700' : 'bg-ok-bg text-ok'");
+    expect(card).toContain("'Private - Only you can see this' : 'Visible to customer'");
+    expect(card).toMatch(/isPrivate \? <><Eye[^>]*\/> Make visible<\/> : <><EyeOff[^>]*\/> Make private<\/>/);
+  });
+  it('banners from the address are cleared so a refresh never shows an old banner', () => {
+    const clear = read('components/ClearNoticeParams.tsx');
+    expect(clear).toContain("url.searchParams.delete('ok')");
+    expect(clear).toContain("url.searchParams.delete('error')");
+    expect(clear).toContain('window.history.replaceState');
+    expect(clear).not.toContain('localStorage');
+    expect(page).toContain('<ClearNoticeParams />');
+    expect(page.indexOf('<ClearNoticeParams />')).toBeLessThan(page.indexOf('<Notice error'));
   });
   it('matches the design: back link, title, count pill, drop box, status pill', () => {
     expect(page).toContain('Back to agreement');
