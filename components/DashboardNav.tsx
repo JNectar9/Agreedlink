@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, TrendingUp, UserRound, Users, Inbox } from 'lucide-react';
@@ -21,6 +22,12 @@ const mobileProfile: Item = { href: '/dashboard/settings', label: 'Profile', sho
 
 export function DashboardNav({ unread, variant }: { unread: number; variant: 'sidebar' | 'bottom' }) {
   const pathname = usePathname();
+  // Start each tab at the top. The sticky header otherwise covers the top of a page that opens part-way down.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    window.scrollTo(0, 0);
+  }, [pathname]);
   const active = (href: string) => (href === '/dashboard' ? pathname === '/dashboard' : pathname === href || pathname.startsWith(`${href}/`));
 
   if (variant === 'bottom') {
