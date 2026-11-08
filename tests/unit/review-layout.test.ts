@@ -1,0 +1,158 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { formatMinorSafe } from '@/lib/money';
+import { PILL_CLASS, agreementPill, compactMoney, kindLabel, reviewSubtitle, splitDeliverables, uploadHint } from '@/lib/review-layout';
+
+const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
+
+describe('layout helpers', () => {
+  it('turns a deliverables list into check items and strips bullets and numbers', () => {
+    expect(splitDeliverables('Primary logo design\nBrand colour palette\nPNG and SVG files')).toEqual(['Primary logo design', 'Brand colour palette', 'PNG and SVG files']);
+    expect(splitDeliverables('- One\n* Two\n\u2022 Three\n4. Four\n5) Five')).toEqual(['One', 'Two', 'Three', 'Four', 'Five']);
+    expect(splitDeliverables('\n  \n')).toEqual([]);
+    expect(splitDeliverables('A single paragraph of text.')).toEqual(['A single paragraph of text.']);
+  });
+  it('shows the real agreement status, never an invented one', () => {
+    expect(agreementPill('awaiting_approval')).toEqual({ text: 'Awaiting approval', tone: 'warn' });
+    expect(agreementPill('approved').tone).toBe('ok');
+    expect(agreementPill('declined').tone).toBe('bad');
+    expect(agreementPill('something_new').text).toBe('In progress');
+    for (const tone of ['ok', 'warn', 'bad', 'muted'] as const) expect(PILL_CLASS[tone].length > 0).toBe(true);
+  });
+  it('labels file kinds and the subtitle honestly', () => {
+    expect(kindLabel('image', 'PNG image')).toBe('Image');
+    expect(kindLabel('pdf', 'PDF')).toBe('PDF');
+    expect(kindLabel('other', 'Word document')).toBe('Word document');
+    expect(reviewSubtitle(2)).toContain('attached files');
+    expect(reviewSubtitle(0)).not.toContain('attached files');
+  });
+  it('drops .00 on whole amounts only, as in the design, and never rounds real cents away', () => {
+    expect(compactMoney(5000000, 'NGN')).toBe(formatMinorSafe(5000000, 'NGN').replace('.00', ''));
+    expect(compactMoney(5000000, 'NGN')).toContain('50,000');
+    expect(compactMoney(5000000, 'NGN')).not.toContain('.00');
+    expect(compactMoney(5000050, 'NGN')).toBe(formatMinorSafe(5000050, 'NGN'));
+    expect(compactMoney(5000050, 'NGN')).toContain('50,000.50');
+    expect(compactMoney(900, 'USD')).toContain('9');
+    expect(compactMoney(900, 'USD')).not.toContain('.00');
+    expect(compactMoney(950, 'USD')).toContain('9.50');
+    expect(compactMoney(500, 'ZZZ')).toContain('500');
+  });
+  it('lists the file types that are really allowed, with the real size limit', () => {
+    expect(uploadHint(10 * 1024 * 1024)).toContain('Max 10 MB');
+    expect(uploadHint(50 * 1024 * 1024)).toContain('Max 50 MB');
+    expect(uploadHint(10 * 1024 * 1024)).toContain('PDF');
+  });
+});
+
+describe('attachments page keeps every existing function', () => {
+  const page = read('app/dashboard/agreements/[id]/attachments/page.tsx');
+  const card = read('components/AttachmentCard.tsx');
+  const up = read('components/AttachmentUploader.tsx');
+  it('still reads limits, files, approval records and thumbnails, and gates by plan', () => {
+    for (const s of ["rpc('my_attachment_limits')", "from('agreement_attachments')", "from('approval_file_records')", "from('approval_attachment_snapshots')", 'createSignedUrls', 'See plans on Billing', 'Files recorded at approval']) expect(page).toContain(s);
+  });
+  it('card keeps preview, download, make private, rename and delete using the same actions', () => {
+    for (const s of ['toggleVisibilityAction', 'renameAttachmentFormAction', 'deleteAttachmentAction', '/download?inline=1', 'Make private', 'Make visible', 'Rename', 'Delete']) expect(card).toContain(s);
+  });
+  it('make private only reports success after the database really holds the new value', () => {
+    const action = read('app/dashboard/attachments/visibility-actions.ts');
+    expect(action).toContain("rpc('set_attachment_visibility'");
+    expect(action).toContain(".from('agreement_attachments').select('customer_visible')");
+    expect(action).toContain('if (actual !== wanted)');
+    expect(action).toContain('${detail(readError)}');
+    expect(action).toContain('attachmentErrorCopy(error) + detail(error)');
+    expect(action.indexOf('if (actual !== wanted)')).toBeLessThan(action.indexOf('return { ok: true'));
+    expect(action).toContain("revalidatePath('/dashboard/agreements/[id]/attachments', 'page')");
+    expect(action).not.toContain('createAdminClient');
+  });
+  it('the badge, button and banner all read the fresh server data, never a local copy', () => {
+    expect(card).toContain('const isPrivate = !p.customerVisible');
+    expect(card).not.toContain('setVisible');
+    expect(card).not.toContain('useState(p.customerVisible)');
+    expect(card).not.toContain('changeVisibilityFormAction');
+    expect(card).not.toContain('name="make_visible"');
+    expect(card).toContain('router.refresh()');
+    expect(card.indexOf('router.refresh()')).toBeGreaterThan(card.indexOf('setConfirmed(result.customerVisible)'));
+  });
+  it('the banner appears only after fresh data agrees, with the exact texts', () => {
+    expect(card).toContain("const PRIVATE_NOTE = 'This file is now private. Your customer cannot see it.'");
+    expect(card).toContain("const VISIBLE_NOTE = 'This file is now visible. Your customer can see and download it.'");
+    expect(card).toContain('if (confirmed !== null && p.customerVisible === confirmed)');
+    expect(card).not.toContain('localStorage');
+    expect(card).not.toContain('sessionStorage');
+  });
+  it('private shows a grey badge and Make visible, visible shows a green badge and Make private', () => {
+    expect(card).toContain("isPrivate ? 'bg-slate-100 text-slate-700' : 'bg-ok-bg text-ok'");
+    expect(card).toContain("'Private - Only you can see this' : 'Visible to customer'");
+    expect(card).toMatch(/isPrivate \? <><Eye[^>]*\/> Make visible<\/> : <><EyeOff[^>]*\/> Make private<\/>/);
+  });
+  it('banners from the address are cleared so a refresh never shows an old banner', () => {
+    const clear = read('components/ClearNoticeParams.tsx');
+    expect(clear).toContain("url.searchParams.delete('ok')");
+    expect(clear).toContain("url.searchParams.delete('error')");
+    expect(clear).toContain('window.history.replaceState');
+    expect(clear).not.toContain('localStorage');
+    expect(page).toContain('<ClearNoticeParams />');
+    expect(page.indexOf('<ClearNoticeParams />')).toBeLessThan(page.indexOf('<Notice error'));
+  });
+  it('matches the design: back link, title, count pill, drop box, status pill', () => {
+    expect(page).toContain('Back to agreement');
+    expect(page).toContain('Manage files attached to this agreement.');
+    expect(page).toContain('Your attachments');
+    expect(page).toContain('Your agreement files and documents');
+    expect(up).toContain('Choose files');
+    expect(up).toContain('or drag and drop here');
+    expect(up).toContain('border-dashed');
+  });
+  it('upload still checks limits first and marks private files before uploading', () => {
+    expect(up).toContain('checkFileChoice');
+    expect(up).toContain('Keep this file private (only me)');
+    expect(up.indexOf('setVisibilityAction(begin.id, false)')).toBeLessThan(up.indexOf('uploadToSignedUrl'));
+    expect(up).toContain('multiple');
+    expect(up).toContain('onDrop');
+  });
+});
+
+describe('customer approval page keeps every existing function', () => {
+  const page = read('app/a/[token]/page.tsx');
+  const files = read('components/CustomerFiles.tsx');
+  it('still loads the agreement and files only through the database functions', () => {
+    expect(page).toContain("rpc('customer_get'");
+    expect(page).toContain("rpc('customer_files'");
+    expect(page).not.toContain("from('agreement_attachments')");
+    expect(files).not.toContain('createClient');
+  });
+  it('still records approve, request changes and decline through the same action, with the name field', () => {
+    expect(page).toContain('<form action={decideAgreementAction.bind(null, token)}');
+    expect(page).toContain('value="approve"');
+    expect(page).toContain('value="clarify"');
+    expect(page).toContain('value="decline"');
+    expect(page).toContain('name="name" required');
+    expect(page).toContain('<OpenBeacon token={token} />');
+    expect(page.indexOf('<CustomerFiles')).toBeLessThan(page.indexOf('<form action={decideAgreementAction'));
+  });
+  it('keeps the change proposal flow, the identity notes and the legal footer', () => {
+    for (const s of ['decideChangeAction', 'ComparisonTable', 'IdentityNote', 'Your identity is not verified', 'does not verify identities, hold payments, or guarantee legal enforceability', 'Created by JNectar']) expect(page).toContain(s);
+  });
+  it('matches the design: secure link badge, headings, sections and button labels', () => {
+    const expected = [
+      'Secure link', 'Review your agreement', 'Project information', 'Service provider', 'Agreed price', 'Delivery date',
+      'Work and deliverables', 'Your decision', 'Approve agreement', 'Request changes', 'Decline agreement', 'Agreement managed with AgreedLink'
+    ];
+    for (const s of expected) expect(page).toContain(s);
+    expect(files).toContain('Files shared with you');
+    expect(files).toContain('Shared with you');
+    expect(files).toContain('View full size file');
+  });
+  it('matches the design details: one card for project and deliverables, filled green ticks, no .00 on whole prices', () => {
+    expect(page.indexOf('id="work-h"')).toBeGreaterThan(page.indexOf('id="project-info-h"'));
+    expect(page.indexOf('id="work-h"')).toBeLessThan(page.indexOf('</section>'));
+    expect(page).toContain('rounded-full bg-ok text-white');
+    expect(page).toContain('compactMoney(t.amount_minor, t.currency)');
+    expect(page).toContain('Please confirm whether you agree with these details.');
+  });
+  it('still shows every term the customer agrees to', () => {
+    for (const s of ['t.description', 't.included_revisions', 'pricingLabel(t)', 't.revision_definition', 't.excluded_work', 't.payment_terms_text', 'formatPlainDate(t.delivery_date)']) expect(page).toContain(s);
+  });
+});

@@ -93,7 +93,7 @@ export function ChangeCalculator(p: Props) {
       </details>
       <div><label htmlFor="notes_for_customer" className="label">Note for the customer (optional)</label><textarea id="notes_for_customer" name="notes_for_customer" maxLength={2000} rows={2} className="input" /></div>
       <p className="text-sm text-muted">Nothing changes until the customer approves. The current terms stay in force until then.</p>
-      <SubmitButton pendingText="Saving proposal…">Save proposal</SubmitButton>
+      <SubmitButton pendingText="Saving change request…">Save change request</SubmitButton>
     </form>
   );
 }

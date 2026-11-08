@@ -221,4 +221,3 @@ export async function updateCustomerAction(customerId: string, formData: FormDat
   if (error) back('error', error.code === '23505' ? 'Another client already uses that email address.' : 'The client could not be saved.');
   back('ok', 'Client saved. If you changed the email, any earlier verification was removed.');
 }
-

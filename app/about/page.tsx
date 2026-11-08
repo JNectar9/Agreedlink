@@ -1,10 +1,12 @@
+import Link from 'next/link';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
+import { SITE, whatsappAvailable, whatsappLink } from '@/lib/site';
 
 export const metadata = { title: 'About' };
 
 export default function AboutPage() {
-  const email = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
+  const link = 'font-semibold text-brand break-words';
   return (
     <>
       <SiteHeader />
@@ -16,7 +18,16 @@ export default function AboutPage() {
           <h2 className="pt-4 text-xl">What AgreedLink is not</h2>
           <p>AgreedLink is not a bank, escrow service, payment processor, or law firm. It never holds your customers&apos; money. It records the details and decisions entered in the app. It does not verify anyone&apos;s identity and does not guarantee that an agreement will be followed or is legally enforceable.</p>
           <h2 id="contact" className="pt-4 text-xl">Contact</h2>
-          <p>{email ? <a className="font-semibold text-brand" href={`mailto:${email}`}>{email}</a> : 'Contact details have not been added yet.'}</p>
+          <ul className="space-y-2">
+            <li>AgreedLink team email: <a className={link} href={`mailto:${SITE.teamEmail}`}>{SITE.teamEmail}</a></li>
+            <li>JNectar email: <a className={link} href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
+            <li>
+              WhatsApp / Call: <a className={link} href={`tel:${SITE.phone}`}>{SITE.phone}</a>
+              {whatsappAvailable ? <> (<a className={link} href={whatsappLink()} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>)</> : null}
+            </li>
+            <li>Website: <a className={link} href={SITE.website} target="_blank" rel="noopener noreferrer">{SITE.website.replace(/^https?:\/\//, '')}</a></li>
+          </ul>
+          <p>You can also send a message from the <Link href="/contact" className="font-semibold text-brand">Contact page</Link>.</p>
         </div>
       </main>
       <SiteFooter />

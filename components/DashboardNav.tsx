@@ -1,7 +1,8 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, UserRound, Users, Inbox } from 'lucide-react';
+import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, TrendingUp, UserRound, Users, Inbox } from 'lucide-react';
 
 type Item = { href: string; label: string; short: string; Icon: typeof Bell; bottom: boolean; badge?: boolean };
 
@@ -9,6 +10,7 @@ const items: Item[] = [
   { href: '/dashboard', label: 'Dashboard', short: 'Home', Icon: LayoutDashboard, bottom: true },
   { href: '/dashboard/agreements', label: 'Agreements', short: 'Agreements', Icon: FileText, bottom: true },
   { href: '/dashboard/templates', label: 'Templates', short: 'Templates', Icon: LayoutTemplate, bottom: false },
+  { href: '/dashboard/reports', label: 'Reports', short: 'Reports', Icon: TrendingUp, bottom: false },
   { href: '/dashboard/clients', label: 'Clients', short: 'Clients', Icon: Users, bottom: false },
   { href: '/dashboard/notifications', label: 'Notifications', short: 'Alerts', Icon: Bell, bottom: true, badge: true },
   { href: '/dashboard/billing', label: 'Billing', short: 'Billing', Icon: CreditCard, bottom: false },
@@ -20,12 +22,18 @@ const mobileProfile: Item = { href: '/dashboard/settings', label: 'Profile', sho
 
 export function DashboardNav({ unread, variant }: { unread: number; variant: 'sidebar' | 'bottom' }) {
   const pathname = usePathname();
+  // Start each tab at the top. The sticky header otherwise covers the top of a page that opens part-way down.
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    window.scrollTo(0, 0);
+  }, [pathname]);
   const active = (href: string) => (href === '/dashboard' ? pathname === '/dashboard' : pathname === href || pathname.startsWith(`${href}/`));
 
   if (variant === 'bottom') {
     const list = [...items.filter((i) => i.bottom), mobileProfile];
     return (
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Dashboard">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Dashboard">
         {list.map(({ href, short, Icon, badge }) => (
           <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
             className={`relative flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium ${active(href) ? 'text-brand' : 'text-muted'}`}>

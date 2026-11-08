@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Menu } from 'lucide-react';
 import { Logo } from './Logo';
+import { isSupabaseConfigured } from '@/lib/env';
+import { createClient } from '@/lib/supabase/server';
 
 const links = [
   { href: '/', label: 'Home' },
@@ -11,7 +13,21 @@ const links = [
   { href: '/contact', label: 'Contact' }
 ];
 
-export function SiteHeader() {
+/** True when the visitor has a valid login. Any problem simply counts as signed out; it never signs anyone out. */
+async function isSignedIn(): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const {
+      data: { user }
+    } = await createClient().auth.getUser();
+    return Boolean(user);
+  } catch {
+    return false;
+  }
+}
+
+export async function SiteHeader() {
+  const signedIn = await isSignedIn();
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
@@ -20,15 +36,27 @@ export function SiteHeader() {
           {links.map((l) => (<Link key={l.href} href={l.href} className="hover:text-brand">{l.label}</Link>))}
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/signin" className="btn-secondary">Log in</Link>
-          <Link href="/signup" className="btn-primary">Get started</Link>
+          {signedIn ? (
+            <Link href="/dashboard" className="btn-primary">Go to Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/signin" className="btn-secondary">Log in</Link>
+              <Link href="/signup" className="btn-primary">Get started</Link>
+            </>
+          )}
         </div>
         <details className="relative lg:hidden">
           <summary className="btn-secondary list-none cursor-pointer" aria-label="Open menu"><Menu size={18} aria-hidden="true" /> Menu</summary>
           <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-line bg-white p-2 shadow-lg">
             {links.map((l) => (<Link key={l.href} href={l.href} className="block rounded-xl px-3 py-3 text-sm font-medium hover:bg-brand-soft">{l.label}</Link>))}
-            <Link href="/signin" className="block rounded-xl px-3 py-3 text-sm font-medium hover:bg-brand-soft">Log in</Link>
-            <Link href="/signup" className="btn-primary mt-1 w-full">Get started</Link>
+            {signedIn ? (
+              <Link href="/dashboard" className="btn-primary mt-1 w-full">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/signin" className="block rounded-xl px-3 py-3 text-sm font-medium hover:bg-brand-soft">Log in</Link>
+                <Link href="/signup" className="btn-primary mt-1 w-full">Get started</Link>
+              </>
+            )}
           </div>
         </details>
       </div>

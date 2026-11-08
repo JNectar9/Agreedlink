@@ -22,7 +22,8 @@ const phone = process.env.NEXT_PUBLIC_CONTACT_PHONE || '+2348029864569';
 export const SITE = {
   company: 'JNectar',
   product: 'AgreedLink',
-  email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'JNectar.tech@gmail.com',
+    email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'JNectar.tech@gmail.com',
+  teamEmail: process.env.NEXT_PUBLIC_TEAM_EMAIL || 'agreedlink.team@gmail.com',
   phone,
   whatsapp: toWhatsAppDigits(process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || phone),
   website: process.env.NEXT_PUBLIC_COMPANY_WEBSITE || 'https://jnectar.tech',

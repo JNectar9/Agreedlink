@@ -18,8 +18,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join('') || 'A';
 
   return (
-    <div className="min-h-screen md:grid md:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="hidden bg-navy text-white md:block">
+    <div className="min-h-screen lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
+      <aside className="hidden bg-navy text-white lg:block">
         <div className="sticky top-0 flex h-screen flex-col p-4">
           <Link href="/dashboard" aria-label="Dashboard home" className="px-2 py-2"><Logo light /></Link>
           <DashboardNav unread={unread} variant="sidebar" />
@@ -36,8 +36,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       <div className="min-w-0">
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-line bg-white px-4">
-          <Link href="/dashboard" className="shrink-0 md:hidden" aria-label="Dashboard home"><Logo /></Link>
-          <form action="/dashboard/agreements" role="search" className="relative hidden min-w-0 max-w-md flex-1 md:block">
+          <Link href="/dashboard" className="shrink-0 lg:hidden" aria-label="Dashboard home"><Logo /></Link>
+          <form action="/dashboard/agreements" role="search" className="relative hidden min-w-0 max-w-md flex-1 lg:block">
             <label htmlFor="header-search" className="sr-only">Search agreements</label>
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden="true" />
             <input id="header-search" name="q" placeholder="Search agreements, clients" className="input !min-h-[40px] !pl-9" />
@@ -47,11 +47,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <Bell size={18} aria-hidden="true" />
               {unread > 0 ? <span className="rounded-full bg-brand px-1.5 text-xs font-semibold text-white">{unread}</span> : null}
             </Link>
-            <Link href="/dashboard/settings" className="md:hidden" aria-label="Profile and settings"><Avatar url={avatarUrl} initials={initials} size={40} /></Link>
-            <Link href="/dashboard/agreements/new" className="btn-primary hidden md:inline-flex">+ Create agreement</Link>
+            <Link href="/dashboard/settings" className="lg:hidden" aria-label="Profile and settings"><Avatar url={avatarUrl} initials={initials} size={40} /></Link>
+            <Link href="/dashboard/agreements/new" className="btn-primary hidden lg:inline-flex">+ Create agreement</Link>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 md:pb-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 lg:pb-10">{children}</main>
       </div>
 
       <DashboardNav unread={unread} variant="bottom" />

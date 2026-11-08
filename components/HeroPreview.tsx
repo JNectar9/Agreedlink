@@ -26,10 +26,10 @@ const rows = [
 /** Illustration of the product built from sample data. Hidden from assistive tech; captioned on screen. */
 export function HeroPreview() {
   return (
-    <div className="relative mx-auto w-full max-w-2xl pb-10 sm:pb-12" aria-hidden="true">
+    <div className="relative mx-auto w-full max-w-2xl pb-8 sm:pb-12" aria-hidden="true">
       <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_28px_70px_rgba(7,26,61,0.3)]">
-        <div className="grid grid-cols-[88px_1fr] sm:grid-cols-[132px_1fr]">
-          <div className="bg-navy p-2.5 text-white sm:p-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[132px_1fr]">
+          <div className="hidden bg-navy p-2.5 text-white sm:block sm:p-3">
             <div className="flex items-center gap-1.5 text-[10px] font-bold sm:text-xs"><LogoMark size={16} light /> AgreedLink</div>
             <ul className="mt-3 space-y-1 text-[10px] sm:text-[11px]">
               {nav.map(({ label, Icon, active }) => (
@@ -67,7 +67,7 @@ export function HeroPreview() {
         </div>
       </div>
 
-      <div className="absolute -bottom-1 -left-1 w-28 rounded-[1.4rem] border-4 border-navy bg-white p-2 shadow-xl sm:-left-4 sm:w-36">
+      <div className="absolute -bottom-1 -left-1 hidden w-28 rounded-[1.4rem] border-4 border-navy bg-white p-2 shadow-xl sm:-left-4 sm:block sm:w-36">
         <div className="flex items-center justify-between"><p className="text-[9px] font-bold text-navy">AgreedLink</p><LogoMark size={12} /></div>
         <div className="mt-1.5 grid grid-cols-2 gap-1">
           {stats.slice(0, 2).map(({ label, value, tone }) => (<div key={label} className="rounded-md border border-line p-1 text-center"><span className={`mx-auto block h-3 w-3 rounded ${tone}`} /><p className="text-[10px] font-semibold text-navy">{value}</p><p className="text-[7px] text-muted">{label}</p></div>))}

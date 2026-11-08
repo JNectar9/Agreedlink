@@ -24,7 +24,7 @@ describe('official plans', () => {
   });
 
   it('never marks an unbuilt feature as live', () => {
-    const unbuilt = ['saved template', 'Attachments', 'PDF export', 'storage', 'Team collaboration', 'Advanced', 'invitations by email'];
+    const unbuilt = ['Advanced templates', 'Team collaboration', 'invitations by email'];
     for (const plan of Object.values(PLAN_CONFIG)) {
       for (const feature of plan.features) {
         if (unbuilt.some((word) => feature.text.includes(word))) expect(feature.live, feature.text).toBe(false);

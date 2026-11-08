@@ -16,6 +16,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { ShareButtons } from '@/components/ShareButtons';
+import { AgreementTools } from '@/components/AgreementTools';
+import { ShareReview } from '@/components/ShareReview';
 import { ComparisonTable } from '@/components/ComparisonTable';
 import {
   cancelAgreementAction, completeAgreementAction, proposeChangeAction, regenerateLinkAction, revokeLinkAction, withdrawChangeAction
@@ -72,6 +74,7 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         <StatusBadge status={shown} />
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
+      <AgreementTools agreementId={a.id} />
 
       <section className="card" aria-labelledby="terms-h">
         <h2 id="terms-h" className="text-lg">Current terms (version {a.current_version})</h2>
@@ -96,7 +99,9 @@ export default async function AgreementPage({ params, searchParams }: { params: 
         <h2 id="share-h" className="text-lg">Customer link</h2>
         {link && built ? (
           <div className="mt-3 space-y-4">
-            <ShareButtons url={built.url} subject={en.share.subject(a.project_name)} defaultMessage={en.share.body(creatorName, a.project_name, built.url)} />
+            <ShareReview agreementId={a.id}>
+              <ShareButtons url={built.url} subject={en.share.subject(a.project_name)} defaultMessage={en.share.body(creatorName, a.project_name, built.url)} />
+            </ShareReview>
             <p className="text-sm text-muted">
               {link.first_opened_at
                 ? `Link opened: first on ${formatDateTime(link.first_opened_at, tz)}, most recently on ${formatDateTime(link.last_opened_at!, tz)} (${link.open_count} time${link.open_count === 1 ? '' : 's'}). An open does not prove the customer read or understood the agreement.`
