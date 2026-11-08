@@ -36,7 +36,7 @@ export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
               {usdShort(cents)}
               <span className="text-base font-medium text-muted">{id === 'free' ? ' forever' : '/month'}</span>
             </p>
-            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : 'Paid by card via Paystack. Activated automatically after Paystack confirms payment. Bank transfer is activated manually by admin after verification.'}</p>
+            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : 'US dollar reference price.'}</p>
 
             <div className="mt-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-ok">Available now</p>
@@ -52,7 +52,7 @@ export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
 
             {soon.length > 0 ? (
               <div className="mt-5 flex-1 rounded-xl bg-page p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Coming soon <span className="font-normal normal-case">(not available yet)</span></p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Coming soon</p>
                 <ul className="mt-2 space-y-2 text-sm text-muted">
                   {soon.map((text) => (
                     <li key={text} className="flex items-start gap-2">
@@ -68,7 +68,7 @@ export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
               {id === 'free' ? (
                 mode === 'public'
                   ? <Link href="/signup" className="btn-secondary w-full">Get started free</Link>
-                  : <p className="text-center text-xs text-muted">{isCurrent ? 'You are on this plan.' : 'You return to Free when a paid plan ends.'}</p>
+                  : (isCurrent ? <p className="text-center text-xs text-muted">Your current plan.</p> : null)
               ) : (
                 <Link href={`/dashboard/billing?plan=${id}#request`} className={`${featured ? 'btn-primary' : 'btn-secondary'} w-full`}>
                   {mode === 'public' ? `Choose ${plan.name}` : isCurrent ? `Renew ${plan.name}` : `Request ${plan.name}`}
