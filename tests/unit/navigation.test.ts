@@ -32,7 +32,7 @@ describe('the session is never lost on public pages', () => {
     expect(read('app/auth/actions.ts')).toContain('export async function signOutAction');
   });
   it('middleware only redirects the guarded areas', () => {
-    expect(middleware).toContain("const GUARDED = ['/dashboard', '/portal']");
+    expect(middleware).toContain("const GUARDED = ['/dashboard', '/portal', '/affiliate']");
     expect(middleware).toMatch(/if \(!url \|\| !key\) return guarded \? toSignIn\(\) : NextResponse\.next\(\)/);
     expect(middleware).toMatch(/if \(!guarded\) \{[\s\S]*?return response;[\s\S]*?\}/);
     expect(middleware).toContain('if (!user) return toSignIn()');
