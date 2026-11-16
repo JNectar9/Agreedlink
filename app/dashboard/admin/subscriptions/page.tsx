@@ -123,6 +123,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                 <Link href={`${back('pending', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsPending}</p><p className="text-xs font-medium text-warn">Pending</p></Link>
                 <Link href={`${back('approved', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsApproved}</p><p className="text-xs font-medium text-ok">Approved</p></Link>
                 <Link href={`${back('rejected', userId, range)}#requests`} className="rounded-lg p-1 hover:bg-white/60"><p className="text-2xl font-bold text-navy">{stats.requestsRejected}</p><p className="text-xs font-medium text-bad">Rejected</p></Link>
+                <Link href="/dashboard/admin/affiliates" className="btn-secondary">Affiliates</Link>
               </div>
               <div className="mt-3 flex items-center gap-2 border-t border-amber-100 pt-3 text-sm text-navy"><CalendarClock size={16} aria-hidden="true" /> Expiring in 7 days <strong className="ml-auto text-xl text-brand">{stats.expiring7d}</strong></div>
             </div>
