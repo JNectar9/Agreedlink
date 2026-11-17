@@ -82,7 +82,10 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
     <div className="max-w-5xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl">Admin Dashboard</h1>
-        <Link href="/dashboard/billing" className="btn-secondary"><ArrowLeft size={16} aria-hidden="true" /> Back to billing</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/admin/affiliates" className="btn-primary"><Users size={16} aria-hidden="true" /> Affiliates</Link>
+          <Link href="/dashboard/billing" className="btn-secondary"><ArrowLeft size={16} aria-hidden="true" /> Back to billing</Link>
+        </div>
       </div>
       <Notice error={searchParams.error} ok={searchParams.ok} />
       {loadError ? <Notice error={subscriptionErrorCopy(loadError)} /> : null}
