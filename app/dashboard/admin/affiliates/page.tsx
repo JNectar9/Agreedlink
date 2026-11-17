@@ -152,7 +152,7 @@ export default async function AdminAffiliatesPage({ searchParams }: { searchPara
           {selected ? (
             <section id="detail" className="card space-y-4" aria-label="Commission details">
               <h2 className="text-lg">Commissions: {str(selected.name)}</h2>
-              <p className="text-xs text-muted">Commission = rate % of net. Net = amount paid minus payment fee. Amounts are shown in each payment's own currency.</p>
+              <p className="text-xs text-muted">Commission = rate % of net. Net = amount paid minus payment fee. Amounts are shown in the currency each payment was made in.</p>
               {rows(commissionsRes.data).length === 0 ? <p className="text-sm text-muted">No commissions yet.</p> : (
                 <ul className="divide-y divide-line">
                   {rows(commissionsRes.data).map((c) => {
