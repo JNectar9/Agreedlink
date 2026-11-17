@@ -1,3 +1,5 @@
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { requireSession } from '@/lib/data';
 import { isOwnerEmail } from '@/lib/admin';
 import { SITE } from '@/lib/site';
@@ -33,6 +35,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: { e
     <div className="max-w-xl space-y-5">
       <h1 className="text-2xl sm:text-3xl">Settings</h1>
       <Notice error={searchParams.error} ok={searchParams.ok} />
+      <Link href="/affiliate" className="card flex items-center justify-between gap-3 hover:bg-page">
+        <span><span className="block text-lg font-semibold">Earn with referrals</span><span className="hint">Share AgreedLink and earn commissions.</span></span>
+        <ChevronRight size={18} className="shrink-0 text-muted" aria-hidden="true" />
+      </Link>
       <AvatarUploader userId={user.id} currentUrl={avatarUrl} initials={initials} hasPhoto={Boolean(profile.avatar_path)} />
 
       <form action={updateSettingsAction} className="card space-y-4">
