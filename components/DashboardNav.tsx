@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CreditCard, FileText, LayoutDashboard, LayoutTemplate, Settings, TrendingUp, UserRound, Users, Inbox } from 'lucide-react';
+import { Bell, CreditCard, FileText, HandCoins, LayoutDashboard, LayoutTemplate, Settings, ShieldCheck, TrendingUp, UserRound, Users, Inbox } from 'lucide-react';
 
 type Item = { href: string; label: string; short: string; Icon: typeof Bell; bottom: boolean; badge?: boolean };
 
@@ -15,12 +15,18 @@ const items: Item[] = [
   { href: '/dashboard/notifications', label: 'Notifications', short: 'Alerts', Icon: Bell, bottom: true, badge: true },
   { href: '/dashboard/billing', label: 'Billing', short: 'Billing', Icon: CreditCard, bottom: false },
   { href: '/dashboard/settings', label: 'Settings', short: 'Profile', Icon: Settings, bottom: false },
+  { href: '/affiliate', label: 'Earn with referrals', short: 'Referrals', Icon: HandCoins, bottom: false },
   { href: '/portal', label: 'My agreements (as a customer)', short: 'Portal', Icon: Inbox, bottom: false }
+];
+
+const adminItems: Item[] = [
+  { href: '/dashboard/admin/subscriptions', label: 'Admin: subscriptions', short: 'Admin', Icon: ShieldCheck, bottom: false },
+  { href: '/dashboard/admin/affiliates', label: 'Admin: affiliates', short: 'Affiliates', Icon: HandCoins, bottom: false }
 ];
 
 const mobileProfile: Item = { href: '/dashboard/settings', label: 'Profile', short: 'Profile', Icon: UserRound, bottom: true };
 
-export function DashboardNav({ unread, variant }: { unread: number; variant: 'sidebar' | 'bottom' }) {
+export function DashboardNav({ unread, variant, isAdmin = false }: { unread: number; variant: 'sidebar' | 'bottom'; isAdmin?: boolean }) {
   const pathname = usePathname();
   // Start each tab at the top. The sticky header otherwise covers the top of a page that opens part-way down.
   const firstRun = useRef(true);
@@ -48,7 +54,7 @@ export function DashboardNav({ unread, variant }: { unread: number; variant: 'si
 
   return (
     <nav className="mt-6 flex-1 space-y-1 overflow-y-auto" aria-label="Dashboard">
-      {items.map(({ href, label, Icon, badge }) => (
+      {[...items, ...(isAdmin ? adminItems : [])].map(({ href, label, Icon, badge }) => (
         <Link key={href} href={href} aria-current={active(href) ? 'page' : undefined}
           className={`flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-sm font-medium ${active(href) ? 'bg-brand text-white' : 'text-blue-100 hover:bg-white/10'}`}>
           <Icon size={18} aria-hidden="true" /> {label}
