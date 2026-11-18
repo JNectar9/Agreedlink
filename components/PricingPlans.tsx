@@ -3,24 +3,28 @@ import { CheckCircle2, Clock } from 'lucide-react';
 import { PLAN_CONFIG } from '@/lib/plans';
 import { PLAN_ORDER, PLAN_TAGLINE, availableFeatures, comingSoonFeatures, type PlanId } from '@/lib/pricing-display';
 import { usdShort } from '@/lib/subscriptions';
+import { nairaShort } from '@/lib/pricing-format';
 
 type Props = {
   /** 'public' is the marketing page. 'billing' is the signed-in page, where buttons start a payment request. */
   mode: 'public' | 'billing';
   /** Monthly prices in US cents. Falls back to the official $0 / $9 / $24. */
   prices?: Partial<Record<PlanId, number>>;
+  /** Real naira prices in kobo. When given, naira is the headline price and the dollar price becomes a small note. */
+  ngnPrices?: { pro: number; premium: number };
   /** Active-agreement limits from the database, when known. */
   limits?: Partial<Record<PlanId, number>>;
   currentPlan?: PlanId;
 };
 
 /** The three plans. Available features and coming-soon features are shown in two clearly separate groups. */
-export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
+export function PricingPlans({ mode, prices, ngnPrices, limits, currentPlan }: Props) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {PLAN_ORDER.map((id) => {
         const plan = PLAN_CONFIG[id];
         const cents = prices?.[id] ?? plan.usdPerMonth * 100;
+        const headline = ngnPrices ? (id === 'free' ? '₦0' : nairaShort(ngnPrices[id])) : usdShort(cents);
         const available = availableFeatures(id, limits?.[id]);
         const soon = comingSoonFeatures(id);
         const featured = id === 'pro';
@@ -33,10 +37,10 @@ export function PricingPlans({ mode, prices, limits, currentPlan }: Props) {
             </div>
             <p className="mt-1 text-sm text-muted">{PLAN_TAGLINE[id]}</p>
             <p className="mt-4 text-4xl font-bold text-navy">
-              {usdShort(cents)}
+              {headline}
               <span className="text-base font-medium text-muted">{id === 'free' ? ' forever' : '/month'}</span>
             </p>
-            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : 'US dollar reference price.'}</p>
+            <p className="mt-1 text-xs text-muted">{id === 'free' ? 'No payment needed.' : ngnPrices ? `About ${usdShort(cents)} per month. Charged in naira.` : 'US dollar reference price.'}</p>
 
             <div className="mt-5">
               <p className="text-xs font-semibold uppercase tracking-wide text-ok">Available now</p>
