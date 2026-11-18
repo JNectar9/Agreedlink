@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       const items = list((await supabase.rpc('admin_affiliate_commissions', { p_affiliate: p.id })).data);
       for (const c of items) rows.push({ affiliate: p.name, code: p.code, ...c });
     }
-    csv = toCsv(rows, ['affiliate', 'code', 'kind', 'payment_ref', 'plan', 'month_no', 'currency', 'gross_minor', 'fee_minor', 'net_minor', 'rate_percent', 'commission_minor', 'status', 'payment_date', 'eligible_after', 'reason']);
+   csv = toCsv(rows, ['affiliate', 'code', 'kind', 'payment_ref', 'plan', 'month_no', 'currency', 'gross_minor', 'fee_minor', 'vat_minor', 'vat_basis', 'net_minor', 'rate_percent', 'commission_minor', 'status', 'payment_date', 'eligible_after', 'reason']);
   } else {
     return new NextResponse('Not found', { status: 404 });
   }
