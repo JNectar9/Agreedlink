@@ -3,9 +3,9 @@ import { requireSession } from '@/lib/data';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyPaystackTransaction } from '@/lib/paystack';
 import { formatNgn } from '@/lib/paystack-checkout';
+import { recordAffiliateCommission } from '@/lib/affiliate-commission';
 import { planLabel } from '@/lib/subscriptions';
 import { formatDateTime } from '@/lib/time';
-import { recordAffiliateCommission } from '@/lib/affiliate-commission';
 
 export const metadata = { title: 'Payment status' };
 export const dynamic = 'force-dynamic';
@@ -40,11 +40,6 @@ export default async function PaystackReturnPage({ searchParams }: { searchParam
       const d = verified.data;
       if (d.status === 'success' && d.reference === reference) {
         await db.rpc('paystack_activate', {
-        try {
-          await recordAffiliateCommission(db, d);
-        } catch (err) {
-          console.error('[paystack-return] affiliate commission failed', err);
-      }
           p_reference: reference,
           p_amount_minor: d.amount,
           p_currency: d.currency,
@@ -52,6 +47,13 @@ export default async function PaystackReturnPage({ searchParams }: { searchParam
           p_channel: d.channel ?? '',
           p_customer_code: d.customer?.customer_code ?? ''
         });
+        // Affiliate commission. Safe to repeat: the database keeps one commission per payment reference.
+        // A problem here must never break the customer's payment page.
+        try {
+          await recordAffiliateCommission(db, d);
+        } catch (err) {
+          console.error('[paystack-return] affiliate commission failed', err);
+        }
       } else if (d.status === 'failed' || d.status === 'abandoned') {
         await db.rpc('paystack_mark_status', { p_reference: reference, p_status: d.status });
       }
