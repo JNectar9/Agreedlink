@@ -38,9 +38,12 @@ export type PaystackVerifyData = {
   amount: number;
   currency: string;
   channel?: string | null;
-  customer?: { customer_code?: string | null } | null;
+    customer?: { customer_code?: string | null } | null;
+  /** What Paystack charged you for this payment, in kobo. Used for affiliate commissions. */
+  fees?: number | null;
+  fees_split?: unknown;
+  fees_breakdown?: unknown;
 };
-
 export type VerifyResult =
   | { ok: true; data: PaystackVerifyData }
   | { ok: false; transient: boolean; message: string };
