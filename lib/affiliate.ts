@@ -9,10 +9,10 @@ export function commissionRate(monthNo: number): number {
   return COMMISSION_RATES[monthNo] ?? 0;
 }
 
-/** Net = gross - processor fee. Commission = rate % of net, rounded down to a whole minor unit. Mirrors the database. */
-export function calcCommission(grossMinor: number, feeMinor: number, monthNo: number): { netMinor: number; commissionMinor: number; ratePercent: number } {
+/** Net = payment - Paystack fee - VAT on that fee. Commission = rate % of net, rounded down to a whole minor unit. Mirrors the database. */
+export function calcCommission(grossMinor: number, feeMinor: number, monthNo: number, vatMinor = 0): { netMinor: number; commissionMinor: number; ratePercent: number } {
   const ratePercent = commissionRate(monthNo);
-  const netMinor = Math.max(0, Math.floor(grossMinor) - Math.max(0, Math.floor(feeMinor)));
+  const netMinor = Math.max(0, Math.floor(grossMinor) - Math.max(0, Math.floor(feeMinor)) - Math.max(0, Math.floor(vatMinor)));
   return { netMinor, ratePercent, commissionMinor: Math.floor((netMinor * ratePercent) / 100) };
 }
 
