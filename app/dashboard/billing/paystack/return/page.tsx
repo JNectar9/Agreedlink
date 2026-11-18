@@ -40,6 +40,11 @@ export default async function PaystackReturnPage({ searchParams }: { searchParam
       const d = verified.data;
       if (d.status === 'success' && d.reference === reference) {
         await db.rpc('paystack_activate', {
+        try {
+          await recordAffiliateCommission(db, d);
+        } catch (err) {
+          console.error('[paystack-return] affiliate commission failed', err);
+      }
           p_reference: reference,
           p_amount_minor: d.amount,
           p_currency: d.currency,
