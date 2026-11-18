@@ -152,7 +152,7 @@ export default async function AdminAffiliatesPage({ searchParams }: { searchPara
           {selected ? (
             <section id="detail" className="card space-y-4" aria-label="Commission details">
               <h2 className="text-lg">Commissions: {str(selected.name)}</h2>
-              <p className="text-xs text-muted">Commission = rate % of net. Net = amount paid minus payment fee. Amounts are shown in the currency each payment was made in.</p>
+              <p className="text-xs text-muted">Commission = rate % of net. Net = amount paid minus the Paystack fee and the VAT on that fee. Amounts are shown in the currency each payment was made in.</p>
               {rows(commissionsRes.data).length === 0 ? <p className="text-sm text-muted">No commissions yet.</p> : (
                 <ul className="divide-y divide-line">
                   {rows(commissionsRes.data).map((c) => {
@@ -167,7 +167,8 @@ export default async function AdminAffiliatesPage({ searchParams }: { searchPara
                         {sale ? (
                           <p className="text-xs text-muted">
                             Paid {formatMinorSafe(num(c.gross_minor), cc)} - fee {formatMinorSafe(num(c.fee_minor), cc)} - VAT {formatMinorSafe(num(c.vat_minor), cc)} = net {formatMinorSafe(num(c.net_minor), cc)}.{' '}
-                            Commission <p className="text-xs text-muted">Commission = rate % of net. Net = amount paid minus the Paystack fee and the VAT on that fee. Amounts are shown in the currency each payment was made in.</p>
+                            Commission <strong className="text-navy">{formatMinorSafe(num(c.commission_minor), cc)}</strong>.
+                          </p>
                         )
                           : <p className="text-xs text-muted">Amount <strong className="text-navy">{formatMinorSafe(num(c.commission_minor), cc)}</strong>. {str(c.reason)}</p>}
                         <p className="break-all text-xs text-muted">Ref {str(c.payment_ref)} | Paid on {day(c.payment_date)} | Eligible after {day(c.eligible_after)}</p>
