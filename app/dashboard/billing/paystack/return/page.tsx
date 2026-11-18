@@ -5,6 +5,7 @@ import { verifyPaystackTransaction } from '@/lib/paystack';
 import { formatNgn } from '@/lib/paystack-checkout';
 import { planLabel } from '@/lib/subscriptions';
 import { formatDateTime } from '@/lib/time';
+import { recordAffiliateCommission } from '@/lib/affiliate-commission';
 
 export const metadata = { title: 'Payment status' };
 export const dynamic = 'force-dynamic';
