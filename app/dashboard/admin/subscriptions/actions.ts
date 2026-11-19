@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isValidWhatsAppNumber, toWhatsAppDigits } from '@/lib/site';
+import { parseMoneyToMinor } from '@/lib/money';
 import { isPaidPlan, isUuid, parsePriceToMinor, subscriptionErrorCopy } from '@/lib/subscriptions';
 
 const BASE = '/dashboard/admin/subscriptions';
@@ -14,6 +15,12 @@ function backPath(formData: FormData): string {
 
 function go(back: string, kind: 'error' | 'ok', message: string): never {
   redirect(`${back}${back.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(message)}`);
+}
+
+/** A naira price typed by the admin, in kobo. Must be above zero and within the database limit. */
+function parseNairaToMinor(input: string): number | null {
+  const minor = parseMoneyToMinor(input, 'NGN');
+  return minor !== null && minor > 0 && minor <= 1_000_000_000 ? minor : null;
 }
 
 /** Signed-in admin only. Every database function also checks is_admin() itself, so this is a second lock. */
@@ -42,8 +49,10 @@ export async function approveRequestAction(formData: FormData) {
   const id = text(formData, 'request_id');
   if (!isUuid(id)) go(back, 'error', 'That request could not be found.');
   const amountText = text(formData, 'amount');
-  const amount = amountText === '' ? null : parsePriceToMinor(amountText);
-  if (amountText !== '' && amount === null) go(back, 'error', 'Enter the amount received in dollars, for example 9 or 24.50.');
+  // The amount is in the currency of the request (naira for new requests, dollars for older ones).
+  const currency = text(formData, 'currency') === 'NGN' ? 'NGN' : 'USD';
+  const amount = amountText === '' ? null : currency === 'NGN' ? parseNairaToMinor(amountText) : parsePriceToMinor(amountText);
+  if (amountText !== '' && amount === null) go(back, 'error', currency === 'NGN' ? 'Enter the amount received in naira, for example 14000.' : 'Enter the amount received in dollars, for example 9 or 24.50.');
   const months = optionalMonths(text(formData, 'months'));
   if (months === undefined) go(back, 'error', 'Choose between 1 and 12 months.');
   const { error } = await supabase.rpc('admin_approve_request', {
@@ -122,15 +131,26 @@ export async function grantComplimentaryAction(formData: FormData) {
 export async function updateConfigAction(formData: FormData) {
   const supabase = await adminSession();
   const back = backPath(formData);
+  // The real prices customers pay (card and bank transfer) are in naira.
+  const ngnPro = parseNairaToMinor(text(formData, 'ngn_pro'));
+  const ngnPremium = parseNairaToMinor(text(formData, 'ngn_premium'));
+  if (ngnPro === null || ngnPremium === null) go(back, 'error', 'Enter both naira prices, above zero, with at most 2 decimals.');
+  // The dollar amounts are only the small "About $9" note shown beside the naira price.
   const pro = parsePriceToMinor(text(formData, 'price_pro'));
   const premium = parsePriceToMinor(text(formData, 'price_premium'));
-  if (pro === null || premium === null) go(back, 'error', 'Enter both prices in dollars, above zero, with at most 2 decimals.');
+  if (pro === null || premium === null) go(back, 'error', 'Enter both dollar notes, above zero, with at most 2 decimals.');
   const instructions = String(formData.get('payment_instructions') ?? '').trim();
   if (instructions.length > 2000) go(back, 'error', 'Payment instructions must be 2,000 characters or fewer.');
   const email = text(formData, 'support_email');
   if (email && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254)) go(back, 'error', 'Enter a valid support email or leave it empty.');
   const whatsapp = text(formData, 'support_whatsapp');
   if (whatsapp && (whatsapp.length > 30 || !isValidWhatsAppNumber(toWhatsAppDigits(whatsapp)))) go(back, 'error', 'Enter the WhatsApp number with its country code, for example +234..., or leave it empty.');
+  const { error: ngnError } = await supabase.rpc('admin_update_paystack_config', {
+    p_enabled: null,
+    p_price_pro_ngn_minor: ngnPro,
+    p_price_premium_ngn_minor: ngnPremium
+  });
+  if (ngnError) go(back, 'error', subscriptionErrorCopy(ngnError));
   const { error } = await supabase.rpc('admin_update_subscription_config', {
     p_price_pro_minor: pro,
     p_price_premium_minor: premium,
