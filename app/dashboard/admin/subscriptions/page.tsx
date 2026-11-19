@@ -6,7 +6,7 @@ import { formatDateTime } from '@/lib/time';
 import { SITE } from '@/lib/site';
 import { RevenueChart } from '@/components/RevenueChart';
 import { parseDashboard, parseRange } from '@/lib/admin-dashboard';
-import { minorToInputString } from '@/lib/money';
+import { formatMinorSafe, minorToInputString, type CurrencyCode } from '@/lib/money';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { isUuid, planLabel, subscriptionErrorCopy, usd, usdShort, type PaidPlan, type PublicConfig, type RequestStatus } from '@/lib/subscriptions';
@@ -21,7 +21,7 @@ const FILTERS = ['pending', 'approved', 'rejected', 'all'] as const;
 type Filter = (typeof FILTERS)[number];
 
 type AdminRequest = {
-  id: string; user_id: string; name: string; email: string; plan: PaidPlan; months: number; expected_amount_minor: number | null;
+  id: string; user_id: string; name: string; email: string; plan: PaidPlan; months: number; expected_amount_minor: number | null; currency: string;
   payment_reference: string; customer_notes: string; status: RequestStatus; rejection_reason: string | null; admin_notes: string | null;
   created_at: string; reviewed_at: string | null;
 };
@@ -108,15 +108,18 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
             </div>
             <div className="rounded-2xl border border-green-100 bg-green-50 p-5">
               <div className="flex items-center gap-2 text-sm font-medium text-navy"><Wallet size={18} aria-hidden="true" /> Total revenue (lifetime)</div>
-              <p className="mt-2 text-3xl font-bold text-navy">{usd(stats.revenueLifetimeMinor)}</p>
-              <p className="mt-3 border-t border-green-100 pt-3 text-xs text-muted">Payments recorded by approving requests or renewing. Complimentary grants are not counted.</p>
+              <p className="mt-2 text-3xl font-bold text-navy">{formatMinorSafe(stats.revenueLifetimeMinor, stats.currency)}</p>
+              <p className="mt-3 border-t border-green-100 pt-3 text-xs text-muted">
+                Card {formatMinorSafe(stats.revenueCardLifetimeMinor, stats.currency)} | Bank transfer {formatMinorSafe(stats.revenueBankLifetimeMinor, stats.currency)}. Complimentary grants are not counted.
+                {stats.revenueUsdLifetimeMinor > 0 ? ` Earlier payments recorded in dollars, not included above: ${formatMinorSafe(stats.revenueUsdLifetimeMinor, 'USD')}.` : ''}
+              </p>
             </div>
             <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5">
               <div className="flex items-center gap-2 text-sm font-medium text-navy"><TrendingUp size={18} aria-hidden="true" /> This month revenue</div>
-              <p className="mt-2 text-3xl font-bold text-navy">{usd(stats.revenueMonthMinor)}</p>
+              <p className="mt-2 text-3xl font-bold text-navy">{formatMinorSafe(stats.revenueMonthMinor, stats.currency)}</p>
               <div className="mt-3 border-t border-purple-100 pt-3">
                 <p className="text-xs text-muted">Pending expected</p>
-                <p className="text-2xl font-bold text-warn">{usd(stats.pendingExpectedMinor)}</p>
+                <p className="text-2xl font-bold text-warn">{formatMinorSafe(stats.pendingExpectedMinor, stats.currency)}</p>
                 <p className="text-xs text-muted">From {stats.requestsPending} request{stats.requestsPending === 1 ? '' : 's'} waiting for review</p>
               </div>
             </div>
@@ -143,7 +146,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   ))}
                 </div>
               </div>
-              <div className="mt-3"><RevenueChart trend={stats.trend} /></div>
+              <div className="mt-3"><RevenueChart trend={stats.trend} currency={stats.currency} /></div>
             </section>
             <section className="card" aria-label="Quick actions">
               <h2 className="text-lg">Quick actions</h2>
@@ -164,7 +167,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   {stats.recentPayments.map((p) => (
                     <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-sm">
                       <div className="min-w-0"><p className="truncate font-medium text-navy">{p.email}</p><p className="text-xs text-muted">{formatDateTime(p.approvedAt, tz)}{p.status === 'cancelled' ? ' (cancelled)' : ''}</p></div>
-                      <div className="text-right"><p className="font-semibold text-navy">{usd(p.amountMinor)}</p><p className="text-xs text-muted">{planLabel(p.plan)}, {p.months} month{p.months === 1 ? '' : 's'}</p></div>
+                      <div className="text-right"><p className="font-semibold text-navy">{formatMinorSafe(p.amountMinor, p.currency)}</p><p className="text-xs text-muted">{planLabel(p.plan)}, {p.months} month{p.months === 1 ? '' : 's'}, {p.source === 'card' ? 'card' : 'bank transfer'}</p></div>
                     </li>
                   ))}
                 </ul>
@@ -178,7 +181,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                     <li key={r.id} className="space-y-2 py-3 text-sm">
                       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                         <div className="min-w-0"><p className="truncate font-medium text-navy">{r.email}</p><p className="text-xs text-muted">{formatDateTime(r.created_at, tz)}</p>{refs[r.id] ? <p className="break-all text-xs font-semibold text-brand">{refs[r.id]}</p> : null}</div>
-                        <div className="text-right"><p className="font-semibold text-navy">{r.expected_amount_minor != null ? usd(r.expected_amount_minor) : '-'}</p><p className="text-xs text-muted">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}</p></div>
+                        <div className="text-right"><p className="font-semibold text-navy">{r.expected_amount_minor != null ? formatMinorSafe(r.expected_amount_minor, r.currency) : '-'}</p><p className="text-xs text-muted">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}</p></div>
                       </div>
                       <div className="flex gap-2">
                         <Link href={`${BASE}?focus=${r.id}&act=approve#req-${r.id}`} className="inline-flex min-h-[40px] items-center rounded-lg bg-ok px-4 text-xs font-semibold text-white">Approve</Link>
@@ -242,7 +245,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-navy">{r.name || 'Unnamed'} <span className="font-normal text-muted">{r.email}</span></p>
-                <p className="text-navy">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}{r.expected_amount_minor != null ? `, expected ${usd(r.expected_amount_minor)}` : ''}</p>
+                <p className="text-navy">{planLabel(r.plan)}, {r.months} month{r.months === 1 ? '' : 's'}{r.expected_amount_minor != null ? `, expected ${formatMinorSafe(r.expected_amount_minor, r.currency)}` : ''}</p>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${BADGE[r.status]}`}>{r.status}</span>
             </div>
@@ -266,7 +269,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                     <p className="hint">Confirm you received the money first, and check the transfer shows the payment reference above. Each bank transaction ID can be used once.</p>
                     <div><label htmlFor={`ref-${r.id}`} className="label">Bank transaction ID</label><input id={`ref-${r.id}`} name="payment_reference" defaultValue={r.payment_reference} minLength={3} maxLength={120} required className="input" /></div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div><label htmlFor={`amt-${r.id}`} className="label">Amount received (USD)</label><input id={`amt-${r.id}`} name="amount" inputMode="decimal" defaultValue={r.expected_amount_minor != null ? minorToInputString(r.expected_amount_minor, 'USD') : ''} className="input" /></div>
+                      <div><label htmlFor={`amt-${r.id}`} className="label">Amount received ({r.currency})</label><input id={`amt-${r.id}`} name="amount" inputMode="decimal" defaultValue={r.expected_amount_minor != null ? minorToInputString(r.expected_amount_minor, r.currency as CurrencyCode) : ''} className="input" /></div>
                       <div><label htmlFor={`mo-${r.id}`} className="label">Months</label><input id={`mo-${r.id}`} name="months" type="number" min={1} max={12} defaultValue={r.months} className="input" /></div>
                     </div>
                     <div><label htmlFor={`note-${r.id}`} className="label">Admin note (optional)</label><input id={`note-${r.id}`} name="notes" maxLength={1000} className="input" /></div>
