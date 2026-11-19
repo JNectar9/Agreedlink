@@ -3,13 +3,19 @@
 
 export type TrendPoint = { month: string; revenueMinor: number };
 export type RecentPayment = {
-  id: string; userId: string; email: string; plan: 'pro' | 'premium'; amountMinor: number; months: number; approvedAt: string; status: 'active' | 'cancelled';
+  id: string; userId: string; email: string; plan: 'pro' | 'premium'; amountMinor: number; currency: string; source: 'card' | 'bank_transfer';
+  months: number; approvedAt: string; status: 'active' | 'cancelled';
 };
 export type DashboardStats = {
   generatedAt: string;
+  /** The currency of the revenue figures below. 'NGN' once the naira migration has run. */
+  currency: string;
   usersTotal: number; usersThisMonth: number;
   subscribersPro: number; subscribersPremium: number; subscribersComplimentary: number;
   revenueLifetimeMinor: number; revenueMonthMinor: number; pendingExpectedMinor: number;
+  revenueBankLifetimeMinor: number; revenueCardLifetimeMinor: number; revenueBankMonthMinor: number; revenueCardMonthMinor: number;
+  /** Older payments that were recorded in US dollars. Never added to the naira totals. */
+  revenueUsdLifetimeMinor: number;
   requestsPending: number; requestsApproved: number; requestsRejected: number;
   expiring7d: number;
   trend: TrendPoint[];
@@ -26,6 +32,7 @@ const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 export function parseDashboard(raw: unknown): DashboardStats | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
+  const currency = str(r.currency) || 'USD';
   const trend = (Array.isArray(r.trend) ? r.trend : []).map((t) => {
     const o = (t ?? {}) as Record<string, unknown>;
     return { month: str(o.month), revenueMinor: num(o.revenue_minor) };
@@ -34,14 +41,18 @@ export function parseDashboard(raw: unknown): DashboardStats | null {
     const o = (p ?? {}) as Record<string, unknown>;
     return {
       id: str(o.id), userId: str(o.user_id), email: str(o.email), plan: o.plan === 'premium' ? 'premium' : 'pro',
-      amountMinor: num(o.amount_minor), months: num(o.months), approvedAt: str(o.approved_at), status: o.status === 'cancelled' ? 'cancelled' : 'active'
+      amountMinor: num(o.amount_minor), currency: str(o.currency) || currency, source: o.source === 'card' ? 'card' : 'bank_transfer', months: num(o.months), approvedAt: str(o.approved_at), status: o.status === 'cancelled' ? 'cancelled' : 'active'
     } as RecentPayment;
   });
   return {
     generatedAt: str(r.generated_at),
+    currency,
     usersTotal: num(r.users_total), usersThisMonth: num(r.users_this_month),
     subscribersPro: num(r.subscribers_pro), subscribersPremium: num(r.subscribers_premium), subscribersComplimentary: num(r.subscribers_complimentary),
     revenueLifetimeMinor: num(r.revenue_lifetime_minor), revenueMonthMinor: num(r.revenue_month_minor), pendingExpectedMinor: num(r.pending_expected_minor),
+    revenueBankLifetimeMinor: num(r.revenue_bank_lifetime_minor), revenueCardLifetimeMinor: num(r.revenue_card_lifetime_minor),
+    revenueBankMonthMinor: num(r.revenue_bank_month_minor), revenueCardMonthMinor: num(r.revenue_card_month_minor),
+    revenueUsdLifetimeMinor: num(r.revenue_usd_lifetime_minor),
     requestsPending: num(r.requests_pending), requestsApproved: num(r.requests_approved), requestsRejected: num(r.requests_rejected),
     expiring7d: num(r.expiring_7d),
     trend, recentPayments
