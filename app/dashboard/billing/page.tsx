@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Mail, MessageCircle, ShieldCheck } from 'lucide-react';
 import { requireSession, loadAgreements, ACTIVE_STATUSES } from '@/lib/data';
 import { PLAN_CONFIG } from '@/lib/plans';
+import { nairaShort, ngnPricesFromConfig } from '@/lib/pricing-format';
+import { formatMinorSafe } from '@/lib/money';
 import { PricingPlans } from '@/components/PricingPlans';
 import { ACTIVATION_NOTE, ACTIVATION_STEPS } from '@/lib/pricing-display';
 import { SITE, buildWhatsAppLink, isValidWhatsAppNumber, toWhatsAppDigits } from '@/lib/site';
@@ -12,7 +14,7 @@ import { PaystackCheckout } from '@/components/PaystackCheckout';
 import { CopyReference } from '@/components/CopyReference';
 import { formatNgn, type PaystackBillingExtras, type PaystackConfigExtras } from '@/lib/paystack-checkout';
 import {
-  isPaidPlan, planLabel, subscriptionErrorCopy, usd, usdShort,
+  isPaidPlan, planLabel, subscriptionErrorCopy, usdShort,
   type MyRequestRow, type MySubscription, type PublicConfig, type RequestStatus
 } from '@/lib/subscriptions';
 import { submitSubscriptionRequestAction } from './actions';
@@ -66,6 +68,9 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
   const preselect = isPaidPlan(searchParams.plan) ? searchParams.plan : sub?.current?.plan ?? 'pro';
 
   const price = (id: 'free' | 'pro' | 'premium') => cfg?.prices[id] ?? PLAN_CONFIG[id].usdPerMonth * 100;
+  // The real price is naira (what card checkout charges). Dollars are only a small reference note.
+  const ngn = ngnPricesFromConfig(pcfg);
+  const naira = (id: 'free' | 'pro' | 'premium') => (id === 'free' ? '₦0' : nairaShort(ngn[id]));
   const instructions = cfg?.payment_instructions?.trim() ?? '';
   const supportEmail = cfg?.support_email?.trim() || SITE.email;
   const waDigits = toWhatsAppDigits(cfg?.support_whatsapp?.trim() || SITE.whatsapp);
@@ -108,7 +113,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stateCls}`}>{stateLabel}</span>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">{usdShort(price(planId))}/month</dd></div>
+          <div><dt className="text-muted">Price</dt><dd className="font-semibold text-navy">{naira(planId)}/month{planId !== 'free' ? <span className="block text-xs font-normal text-muted">About {usdShort(price(planId))}</span> : null}</dd></div>
           <div>
             <dt className="text-muted">{sub?.current ? 'Paid access until' : 'Access until'}</dt>
             <dd className="font-semibold text-navy">
@@ -139,12 +144,13 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
       <section aria-label="Plans" className="space-y-3">
         <div>
           <h2 className="text-lg">Plans</h2>
-          <p className="text-sm text-muted">Free is $0. Pro is {usdShort(price('pro'))} and Premium is {usdShort(price('premium'))} per month. These are US dollar reference prices.</p>
+          <p className="text-sm text-muted">Free is ₦0. Pro is {naira('pro')} and Premium is {naira('premium')} per month. Dollar amounts are only an approximate guide.</p>
         </div>
         <PricingPlans
           mode="billing"
           currentPlan={planId}
           prices={{ free: price('free'), pro: price('pro'), premium: price('premium') }}
+          ngnPrices={ngn}
           limits={{ free: cfg?.limits?.free?.active_agreements, pro: cfg?.limits?.pro?.active_agreements, premium: cfg?.limits?.premium?.active_agreements }}
         />
         <p className="text-xs text-muted">When a paid plan ends you return to Free. Nothing is deleted. Above the Free limit you can still view and finish agreements, but not create new ones.</p>
@@ -200,8 +206,8 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
             <div>
               <label htmlFor="plan" className="label">Plan</label>
               <select id="plan" name="plan" defaultValue={preselect} className="input">
-                <option value="pro">Pro ({usdShort(price('pro'))}/month)</option>
-                <option value="premium">Premium ({usdShort(price('premium'))}/month)</option>
+                <option value="pro">Pro ({naira('pro')}/month)</option>
+                <option value="premium">Premium ({naira('premium')}/month)</option>
               </select>
             </div>
             <div>
@@ -209,7 +215,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <select id="months" name="months" defaultValue="1" className="input">
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m} month{m === 1 ? '' : 's'}</option>)}
               </select>
-              <p className="hint">Total = monthly price × months. Pro for 3 months is {usd(price('pro') * 3)}.</p>
+              <p className="hint">Total = monthly price × months. Pro for 3 months is {nairaShort(ngn.pro * 3)}.</p>
             </div>
             <div>
               <label htmlFor="payment_reference" className="label">Bank transfer transaction ID</label>
@@ -234,7 +240,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
             {requests.map((r) => (
               <li key={r.id} className="space-y-1 py-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold text-navy">{planLabel(r.requested_plan)}, {r.months} month{r.months === 1 ? '' : 's'}{r.expected_amount_minor != null ? ` - ${usd(r.expected_amount_minor)}` : ''}</p>
+                  <p className="font-semibold text-navy">{planLabel(r.requested_plan)}, {r.months} month{r.months === 1 ? '' : 's'}{r.expected_amount_minor != null ? ` - ${formatMinorSafe(r.expected_amount_minor, r.currency)}` : ''}</p>
                   <RequestBadge status={r.status} />
                 </div>
                 <p className="text-xs text-muted">Sent {formatDateTime(r.created_at, tz)}{r.reviewed_at ? `. Decided ${formatDateTime(r.reviewed_at, tz)}` : ''}. {refByRequest.get(r.id) ? `Payment reference: ${refByRequest.get(r.id)}. ` : ''}Transaction ID: {r.payment_reference || 'none'}</p>
@@ -270,7 +276,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { pl
               <li key={`${h.starts_at}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                 <div>
                   <p className="font-semibold text-navy">{planLabel(h.plan)} {h.kind === 'complimentary' ? '(complimentary)' : ''}</p>
-                  <p className="text-xs text-muted">{formatDateTime(h.starts_at, tz)} to {formatDateTime(h.expires_at, tz)}{h.kind === 'payment' ? `. Paid ${usd(h.amount_minor)}` : ''}</p>
+                  <p className="text-xs text-muted">{formatDateTime(h.starts_at, tz)} to {formatDateTime(h.expires_at, tz)}{h.kind === 'payment' ? `. Paid ${formatMinorSafe(h.amount_minor, h.currency)}` : ''}</p>
                 </div>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${h.status === 'cancelled' ? 'bg-bad-bg text-bad' : new Date(h.expires_at) > new Date() ? 'bg-ok-bg text-ok' : 'bg-slate-100 text-slate-700'}`}>
                   {h.status === 'cancelled' ? 'Cancelled' : new Date(h.expires_at) > new Date() ? 'Active' : 'Ended'}
