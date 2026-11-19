@@ -7,6 +7,7 @@ import { SITE } from '@/lib/site';
 import { RevenueChart } from '@/components/RevenueChart';
 import { parseDashboard, parseRange } from '@/lib/admin-dashboard';
 import { formatMinorSafe, minorToInputString, type CurrencyCode } from '@/lib/money';
+import { ngnPricesFromConfig } from '@/lib/pricing-format';
 import { Notice } from '@/components/Notice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { isUuid, planLabel, subscriptionErrorCopy, usd, usdShort, type PaidPlan, type PublicConfig, type RequestStatus } from '@/lib/subscriptions';
@@ -73,6 +74,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
   // Newest first for the compact panel.
   const pendingPanel = [...pendingAll].reverse().slice(0, 5);
   const cfg = (cfgRes.data ?? null) as PublicConfig | null;
+  const ngn = ngnPricesFromConfig(cfgRes.data);
   const subs = (subsRes.data ?? []) as AdminSub[];
   const loadError = pendingRes.error ?? reqRes?.error ?? cfgRes.error ?? subsRes.error ?? null;
   const now = Date.now();
@@ -203,14 +205,26 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
           <input type="hidden" name="back" value={here} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="price_pro" className="label">Pro price per month (USD)</label>
+              <label htmlFor="ngn_pro" className="label">Pro price per month (₦)</label>
+              <input id="ngn_pro" name="ngn_pro" inputMode="decimal" required defaultValue={minorToInputString(ngn.pro, 'NGN')} className="input" />
+            </div>
+            <div>
+              <label htmlFor="ngn_premium" className="label">Premium price per month (₦)</label>
+              <input id="ngn_premium" name="ngn_premium" inputMode="decimal" required defaultValue={minorToInputString(ngn.premium, 'NGN')} className="input" />
+            </div>
+          </div>
+          <p className="hint">These are the real prices customers pay, by card and by bank transfer.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="price_pro" className="label">Pro dollar note (USD)</label>
               <input id="price_pro" name="price_pro" inputMode="decimal" required defaultValue={cfg ? minorToInputString(cfg.prices.pro, 'USD') : '9.00'} className="input" />
             </div>
             <div>
-              <label htmlFor="price_premium" className="label">Premium price per month (USD)</label>
+              <label htmlFor="price_premium" className="label">Premium dollar note (USD)</label>
               <input id="price_premium" name="price_premium" inputMode="decimal" required defaultValue={cfg ? minorToInputString(cfg.prices.premium, 'USD') : '24.00'} className="input" />
             </div>
           </div>
+          <p className="hint">Only shown as a small &quot;About $9&quot; note beside the naira price. Customers are never charged in dollars.</p>
           <div>
             <label htmlFor="payment_instructions" className="label">Payment instructions</label>
             <textarea id="payment_instructions" name="payment_instructions" rows={6} maxLength={2000} defaultValue={cfg?.payment_instructions ?? ''} className="input" />
@@ -266,6 +280,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
                   <form action={approveRequestAction} className="mt-3 space-y-3">
                     <input type="hidden" name="back" value={here} />
                     <input type="hidden" name="request_id" value={r.id} />
+                    <input type="hidden" name="currency" value={r.currency} />
                     <p className="hint">Confirm you received the money first, and check the transfer shows the payment reference above. Each bank transaction ID can be used once.</p>
                     <div><label htmlFor={`ref-${r.id}`} className="label">Bank transaction ID</label><input id={`ref-${r.id}`} name="payment_reference" defaultValue={r.payment_reference} minLength={3} maxLength={120} required className="input" /></div>
                     <div className="grid grid-cols-2 gap-3">
